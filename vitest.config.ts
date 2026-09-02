@@ -1,6 +1,10 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  define: {
+    // 앱 코드가 참조하는 빌드타임 상수 — 테스트에서도 정의돼 있어야 한다.
+    __APP_VERSION__: JSON.stringify("0.0.0-test"),
+  },
   test: {
     globals: true,
     // core 는 프레임워크 무관 → node 에서 테스트(빠름). DOM 이 필요한 테스트 파일은

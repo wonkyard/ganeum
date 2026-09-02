@@ -20,6 +20,8 @@ export interface Router {
   start(): void;
   stop(): void;
   go(path: string): void;
+  /** 현재 경로를 강제로 다시 디스패치 (테마/언어 전환 후 재렌더). */
+  reload(): void;
   current(): string;
 }
 
@@ -81,6 +83,9 @@ export function createRouter(fallback: RouteHandler): Router {
       window.location.hash = `#${next}`;
       // hashchange 가 (jsdom 등에서) 동기적으로 안 오는 경우까지 커버.
       resolve();
+    },
+    reload() {
+      resolve(true);
     },
     current() {
       return normalize(window.location.hash);

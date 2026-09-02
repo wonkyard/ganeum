@@ -100,6 +100,108 @@ describe("TargetField 진행 로직", () => {
     field.destroy();
   });
 
+  it("P0-1 골든: 착지 오차를 접근 축(직전 타깃 → 이번 타깃)에 투영한다", () => {
+    let clock = 0;
+    const taps: Array<{ dx: number; dy: number; devAxis: number; devOrtho: number }> = [];
+    const canvas = document.createElement("canvas");
+    let size = 0;
+    const field = new TargetField({
+      canvas,
+      buildLayout: (s) => {
+        size = s;
+        return generateTargetLayout({
+          center: { x: s / 2, y: s / 2 },
+          amplitude: s * 0.6,
+          width: 40,
+          count: 5,
+        });
+      },
+      reducedMotion: true,
+      now: () => (clock += 100),
+      onTap: (t) => taps.push(t),
+      onComplete: vi.fn(),
+    });
+
+    const layout = generateTargetLayout({
+      center: { x: size / 2, y: size / 2 },
+      amplitude: size * 0.6,
+      width: 40,
+      count: 5,
+    });
+    const reg = (field as unknown as { registerTap(x: number, y: number, p: string): void })
+      .registerTap;
+    const call = (x: number, y: number) => reg.call(field, x, y, "mouse");
+
+    // 타깃 0 을 정확히 중심에서 맞힘 → prevTargetPos 설정, 진행.
+    const p0 = layout.positions[layout.order[0]];
+    call(p0.x, p0.y);
+    // 타깃 1(= order[1]) 에 알려진 오프셋으로 착지.
+    const p1 = layout.positions[layout.order[1]];
+    const ox = 7;
+    const oy = -3;
+    call(p1.x + ox, p1.y + oy);
+
+    const ux = p1.x - p0.x;
+    const uy = p1.y - p0.y;
+    const mag = Math.hypot(ux, uy);
+    const nx = ux / mag;
+    const ny = uy / mag;
+    const last = taps[taps.length - 1];
+    expect(last.dx).toBeCloseTo(ox, 9);
+    expect(last.dy).toBeCloseTo(oy, 9);
+    expect(last.devAxis).toBeCloseTo(ox * nx + oy * ny, 6);
+    expect(last.devOrtho).toBeCloseTo(-ox * ny + oy * nx, 6);
+    // 접근 축이 대각선이므로 원시 dx 와 축투영은 다르다.
+    expect(Math.abs(last.devAxis - last.dx)).toBeGreaterThan(1e-6);
+    field.destroy();
+  });
+
+  it("P0-4 골든: 미스 후 재시도해도 타깃당 엔드포인트 1개, mt 는 press→press", () => {
+    let clock = 0;
+    const taps: Array<{ mt: number; error: boolean }> = [];
+    const canvas = document.createElement("canvas");
+    let size = 0;
+    const field = new TargetField({
+      canvas,
+      buildLayout: (s) => {
+        size = s;
+        return generateTargetLayout({
+          center: { x: s / 2, y: s / 2 },
+          amplitude: s * 0.6,
+          width: 30,
+          count: 5,
+        });
+      },
+      reducedMotion: true,
+      now: () => (clock += 100), // 각 이벤트 +100ms
+      onTap: (t) => taps.push(t),
+      onComplete: vi.fn(),
+    });
+    const layout = generateTargetLayout({
+      center: { x: size / 2, y: size / 2 },
+      amplitude: size * 0.6,
+      width: 30,
+      count: 5,
+    });
+    const reg = (field as unknown as { registerTap(x: number, y: number, p: string): void })
+      .registerTap;
+    const call = (x: number, y: number) => reg.call(field, x, y, "mouse");
+
+    const p0 = layout.positions[layout.order[0]];
+    const p1 = layout.positions[layout.order[1]];
+    call(p0.x, p0.y); // 타깃 0 히트 (엔드포인트 1개)
+    call(p1.x + 999, p1.y); // 타깃 1 첫 press = 미스 (엔드포인트 기록, error)
+    call(p1.x + 998, p1.y); // 재시도 미스 — 기록 안 됨
+    call(p1.x, p1.y); // 재시도 히트 — 기록 안 됨, 진행
+
+    // 타깃 0, 타깃 1 각각 1개씩.
+    expect(taps).toHaveLength(2);
+    expect(taps[1].error).toBe(true); // 첫 press 가 미스였으므로
+    // press→press: 타깃0 첫 press(clock 이벤트 1개 소비) → 타깃1 첫 press(다음 이벤트).
+    expect(taps[1].mt).toBeCloseTo(0.1, 9);
+    field.destroy();
+  });
+
   it("레이아웃 좌표와 히트판정이 같은 좌표계 — 정확히 타깃 중심을 누르면 히트", () => {
     let clock = 0;
     const onComplete = vi.fn();

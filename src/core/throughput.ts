@@ -18,6 +18,36 @@ export function effectiveWidth(deviations: readonly number[]): number {
   return WE_FACTOR * sampleStdDev(deviations);
 }
 
+/** We 의 SD ↔ We 환산 상수. `σ_endpoint = We / WE_FACTOR` (brief-3A §6). */
+export const EFFECTIVE_WIDTH_FACTOR = WE_FACTOR;
+
+export interface PooledWidth {
+  /** 유효 너비 We (입력과 같은 단위). */
+  we: number;
+  /** 실측 SD 로 구했는지(`measured`), 표본이 부족해 못 구했는지(`nominal-fallback`). */
+  source: "measured" | "nominal-fallback";
+  /** pool 에 실제로 들어간 표본 수. */
+  n: number;
+}
+
+/**
+ * brief-3A P0-2 의 **고정된 We 정의**:
+ * 모든 조건의 (워밍업·이상치 제거 후) 축투영 오차를 하나로 pool 한 표본 SD × 4.133.
+ * 한 숫자, 방어 가능, 테스트 쉬움.
+ *
+ * pool 표본이 2개 미만이면 SD 를 정의할 수 없으므로 `nominal-fallback` 을 돌려주고
+ * `we` 는 0 으로 둔다 — 호출부(분석/저장)가 명목 너비로 대체하고 배지를 띄운다.
+ */
+export function pooledEffectiveWidth(deviationsByCondition: readonly (readonly number[])[]): PooledWidth {
+  const pooled: number[] = [];
+  for (const series of deviationsByCondition) pooled.push(...series);
+  const sd = sampleStdDev(pooled);
+  if (pooled.length < 2 || sd === 0) {
+    return { we: 0, source: "nominal-fallback", n: pooled.length };
+  }
+  return { we: WE_FACTOR * sd, source: "measured", n: pooled.length };
+}
+
 export function effectiveIndexOfDifficulty(ae: number, we: number): number {
   if (we <= 0) throw new RangeError("유효 너비 We 는 0보다 커야 합니다");
   return Math.log2(ae / we + 1);

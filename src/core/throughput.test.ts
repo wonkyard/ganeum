@@ -4,7 +4,9 @@ import {
   effectiveIndexOfDifficulty,
   effectiveThroughput,
   effectiveWidth,
+  pooledEffectiveWidth,
 } from "./throughput";
+import { sampleStdDev } from "./stats";
 
 describe("effectiveWidth", () => {
   it("We = 4.133 · 표본SD — 손계산 골든", () => {
@@ -15,6 +17,28 @@ describe("effectiveWidth", () => {
 
   it("점이 1개 이하면 SD=0 → We=0", () => {
     expect(effectiveWidth([3])).toBe(0);
+  });
+});
+
+describe("pooledEffectiveWidth (brief-3A P0-2)", () => {
+  it("모든 조건의 축투영 오차를 pool 한 표본SD × 4.133", () => {
+    const c1 = [-10, -5, 0, 5, 10];
+    const c2 = [-6, -2, 2, 6];
+    const pooled = [...c1, ...c2];
+    const r = pooledEffectiveWidth([c1, c2]);
+    expect(r.source).toBe("measured");
+    expect(r.n).toBe(9);
+    expect(r.we).toBeCloseTo(4.133 * sampleStdDev(pooled), 10);
+  });
+
+  it("pool 표본 < 2 또는 SD 0 이면 nominal-fallback, we=0", () => {
+    expect(pooledEffectiveWidth([[3]])).toEqual({ we: 0, source: "nominal-fallback", n: 1 });
+    expect(pooledEffectiveWidth([[0, 0, 0]])).toEqual({
+      we: 0,
+      source: "nominal-fallback",
+      n: 3,
+    });
+    expect(pooledEffectiveWidth([])).toEqual({ we: 0, source: "nominal-fallback", n: 0 });
   });
 });
 

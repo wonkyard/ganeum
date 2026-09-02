@@ -1,191 +1,107 @@
 /**
- * 주 1–2 앱 셸: 홈 → 측정(S2) → 결과(수치만).
- * S1/S3 의 완성 디자인, 보정, 적응, 카드는 주 3–4 이후이며 여기서는 다루지 않는다.
+ * 앱 셸 — 라우터 배선 + 최상위 에러 경계만 (brief-3A §5, P0-5).
+ * 화면 자체는 `src/ui/screens/*` 에 있고 `app.ts` 는 얇게 유지한다.
+ *
+ * 라우트: `#/`, `#/setup`, `#/measure`, `#/results/:id`, `#/card/:id`.
+ * `measuring` 중 새로고침/이탈 → 진행 버림, `#/` 로 (screen-design 상태 흐름).
  */
-import { analyzeSession, type SessionAnalysis } from "./core/analyze";
-import { designConditions, generateTargetLayout, type ConditionSpec } from "./core/task";
-import type { Condition, Hand, MeasureMode, Tap } from "./core/types";
-import { TargetField, type RawTap } from "./render/target-field";
 import { createRouter } from "./ui/router";
-import { createStore } from "./ui/store";
-import { prefersReducedMotion } from "./a11y/reduced-motion";
-import { t } from "./i18n";
-
-interface AppState {
-  mode: MeasureMode;
-  hand: Hand;
-  analysis: SessionAnalysis | null;
-}
+import { prefersReducedMotion, onReducedMotionChange } from "./a11y/reduced-motion";
+import { loadPrefs } from "./storage/profiles";
+import { onLocaleChange, t } from "./i18n";
+import { el } from "./ui/dom";
+import type { MountContext } from "./ui/screen";
+import { renderHome } from "./ui/screens/s0-home";
+import { renderSetup } from "./ui/screens/s1-setup";
+import { renderMeasure, type MeasureHandle } from "./ui/screens/s2-measure";
+import { renderResults } from "./ui/screens/s3-results";
+import { renderCard } from "./ui/screens/s5-card";
 
 export interface AppHandle {
-  /** 자동화/스모크 테스트용 훅. 현재 타깃을 표시 좌표로 누른다. */
+  /** 자동화/스모크 훅 — 현재 타깃을 표시 좌표로 누른다. */
   tapCurrentTarget(): void;
-  /**
-   * 자동화용: 현재 타깃 중심의 화면(뷰포트) 좌표. 표시 박스 기준이라, 좌표계가
-   * 어긋나면 이 지점을 실제로 클릭해도 히트가 안 잡힌다 — 회귀 테스트가 이용한다.
-   */
+  /** 자동화 훅 — 현재 타깃 중심의 뷰포트 좌표. */
   currentTargetPoint(): { x: number; y: number } | null;
-  getState(): AppState;
+  /** 현재 라우트. */
+  route(): string;
 }
 
 export function createApp(root: HTMLElement): AppHandle {
-  const store = createStore<AppState>({ mode: "quick", hand: "right", analysis: null });
-  const router = createRouter(() => router.go("/"));
+  const router = createRouter(() => mount(renderHome, {}));
+  let cleanups: Array<() => void> = [];
+  let measure: MeasureHandle | null = null;
 
-  let activeField: TargetField | null = null;
+  const reducedMotion = (): boolean => {
+    const override = loadPrefs().reducedMotionOverride;
+    return override ?? prefersReducedMotion();
+  };
 
-  const clear = (): void => {
-    activeField?.destroy();
-    activeField = null;
+  const unmount = (): void => {
+    for (const fn of cleanups.splice(0)) {
+      try {
+        fn();
+      } catch {
+        /* 정리 실패가 다음 화면을 막지 않도록 */
+      }
+    }
+    measure = null;
     root.replaceChildren();
   };
 
-  function renderHome(): void {
-    clear();
-    const wrap = el("section", { class: "screen screen-home" });
-    wrap.append(
-      el("h1", {}, t("app.tagline")),
-      el("p", { class: "numeric muted" }, t("home.subcopy")),
-    );
-    const start = el("button", { class: "btn-primary", type: "button" }, t("home.start"));
-    start.addEventListener("click", () => router.go("/measure"));
-    wrap.append(start);
-    wrap.append(el("p", { class: "muted small" }, t("home.footer")));
-    root.append(wrap);
-    start.focus();
-  }
-
-  function renderMeasure(): void {
-    clear();
-    const { mode } = store.get();
-    const section = el("section", { class: "screen chamber", "aria-label": "측정 중" });
-    const status = el("p", { class: "numeric", role: "status" });
-    const canvas = el("canvas", { class: "target-canvas" }) as HTMLCanvasElement;
-    section.append(status, canvas);
-    section.append(el("p", { class: "small" }, t("measure.pointerRequired")));
-    root.append(section);
-
-    const reduced = prefersReducedMotion();
-    const collected: Condition[] = [];
-    // 조건 개수는 모드에서 바로 나온다(quick 3 / precise 9 — core/task designConditions).
-    const total = mode === "quick" ? 3 : 9;
-
-    // 캔버스 크기의 단일 소스는 TargetField 다. 조건 스펙(A·W·ID)도 필드가 잰
-    // 정사각 크기에서 파생한다 — app.ts 는 별도 size 를 미리 잡지 않는다.
-    let specs: ConditionSpec[] | null = null;
-    const specsFor = (size: number): ConditionSpec[] => {
-      if (!specs) specs = designConditions(mode, size * 0.8);
-      return specs;
+  const mount = (render: (ctx: MountContext) => void, params: Record<string, string>): void => {
+    unmount();
+    const ctx: MountContext = {
+      host: root,
+      params,
+      go: (path) => router.go(path),
+      addCleanup: (fn) => cleanups.push(fn),
+      reducedMotion,
+      rerender: () => router.reload(),
     };
-
-    const runCondition = (index: number): void => {
-      if (index >= total) {
-        finish();
-        return;
-      }
-      status.textContent = t("measure.conditionProgress", { current: index + 1, total });
-      activeField?.destroy();
-      activeField = new TargetField({
-        canvas,
-        reducedMotion: reduced,
-        buildLayout: (size) => {
-          const spec = specsFor(size)[index];
-          return generateTargetLayout({
-            center: { x: size / 2, y: size / 2 },
-            amplitude: Math.min(spec.A, size - spec.W - 8),
-            width: spec.W,
-            count: 11,
-          });
-        },
-        onComplete: (raw) => {
-          if (!specs) throw new Error("조건 스펙이 아직 없습니다");
-          collected.push(toCondition(specs[index], raw));
-          activeField?.destroy();
-          activeField = null;
-          runCondition(index + 1);
-        },
-      });
-    };
-
-    const finish = (): void => {
-      const analysis = analyzeSession(collected);
-      store.set({ analysis });
-      router.go("/results");
-    };
-
-    runCondition(0);
-  }
-
-  function renderResults(): void {
-    clear();
-    const { analysis, hand } = store.get();
-    const section = el("section", { class: "screen screen-results" });
-    if (!analysis) {
-      section.append(el("p", {}, "측정 데이터가 없습니다."));
-      const back = el("button", { type: "button", class: "btn-primary" }, t("home.start"));
-      back.addEventListener("click", () => router.go("/measure"));
-      section.append(back);
-      root.append(section);
-      return;
+    try {
+      render(ctx);
+    } catch (err) {
+      renderErrorBoundary(err);
     }
+  };
 
-    const { fitts, throughput, errorRate, consistencySD } = analysis;
+  const renderErrorBoundary = (err: unknown): void => {
+    if (typeof console !== "undefined") console.error("[ganeum] 화면 렌더 실패", err);
+    root.replaceChildren();
+    const section = el("section", { class: "screen screen-recover" });
+    const retry = el("button", { type: "button", class: "btn-primary" }, t("error.retry"));
+    retry.addEventListener("click", () => router.go("/setup"));
     section.append(
-      el("h1", {}, t("result.title")),
-      metric(t("result.throughput"), `${throughput.toFixed(2)} ${t("result.throughputUnit")}`),
-      metric(
-        "회귀",
-        t("result.regression", { a: fitts.a.toFixed(3), b: fitts.b.toFixed(3) }) +
-          "  ·  " +
-          t("result.rSquared", { value: fitts.r2.toFixed(3) }),
-      ),
-      metric(t("result.accuracy"), `${((1 - errorRate) * 100).toFixed(0)}%`),
-      metric(t("result.consistency"), `±${(consistencySD * 1000).toFixed(0)} ${t("unit.ms")}`),
-      metric(t("result.hand"), hand === "right" ? "오른손" : "왼손"),
-      el("p", { class: "small muted" }, t("result.disclaimer")),
+      el("h1", { tabindex: "-1" }, t("error.title")),
+      el("p", {}, t("error.body")),
+      retry,
     );
-    const again = el("button", { type: "button", class: "btn-primary" }, t("result.remeasure"));
-    again.addEventListener("click", () => router.go("/measure"));
-    section.append(again);
     root.append(section);
-    section.querySelector("h1")?.setAttribute("tabindex", "-1");
-    (section.querySelector("h1") as HTMLElement | null)?.focus();
-  }
+    (section.querySelector("h1") as HTMLElement).focus();
+  };
 
   router
-    .add("/", renderHome)
-    .add("/measure", renderMeasure)
-    .add("/results", renderResults)
+    .add("/", () => mount(renderHome, {}))
+    .add("/setup", () => mount(renderSetup, {}))
+    .add("/measure", () =>
+      mount((ctx) => {
+        measure = renderMeasure(ctx);
+      }, {}),
+    )
+    .add("/results/:id", (m) => mount(renderResults, m.params))
+    .add("/card/:id", (m) => mount(renderCard, m.params))
     .start();
 
+  // 테마/언어/모션 설정이 바뀌면 현재 화면을 다시 그린다. 이 구독은 앱 수명 동안 유지.
+  onLocaleChange(() => router.reload());
+  onReducedMotionChange(() => {
+    // 측정 중에는 재마운트하지 않는다 (진행이 날아감). 그 외에는 반영.
+    if (!router.current().startsWith("/measure")) router.reload();
+  });
+
   return {
-    tapCurrentTarget() {
-      activeField?.tapCurrentTarget("mouse");
-    },
-    currentTargetPoint() {
-      return activeField?.currentTargetClientPoint ?? null;
-    },
-    getState: () => store.get(),
+    tapCurrentTarget: () => measure?.tapCurrentTarget(),
+    currentTargetPoint: () => measure?.currentTargetPoint() ?? null,
+    route: () => router.current(),
   };
-}
-
-/** RawTap(렌더 좌표) → Tap(저장 스키마). */
-function toCondition(spec: { A: number; W: number; ID: number }, raw: RawTap[]): Condition {
-  const taps: Tap[] = raw.map((r) => ({ mt: r.mt, dx: r.dx, dy: r.dy, error: r.error }));
-  return { A: spec.A, W: spec.W, ID: spec.ID, taps };
-}
-
-type Attrs = Record<string, string>;
-function el(tag: string, attrs: Attrs = {}, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
-function metric(label: string, value: string): HTMLElement {
-  const row = el("div", { class: "metric" });
-  row.append(el("span", { class: "metric-label" }, label));
-  row.append(el("span", { class: "metric-value numeric" }, value));
-  return row;
 }

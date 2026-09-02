@@ -1,8 +1,28 @@
 /*
  * 디자인 토큰 (화면설계 §0 비주얼 언어).
  * 라이트가 기본. 다크는 `prefers-color-scheme` 또는 명시적 `[data-theme]` 로.
- * 명도 대비는 WCAG AA 이상을 목표(본문/배경 조합 검증 완료).
  */
+
+/*
+ * 폰트 정책 (brief-3A J9): 숫자·수식용 모노는 서브셋 WOFF2 를 자가 호스팅한다
+ * (CDN 금지 · 오프라인 유지). 본문은 시스템 스택 — 한글 웹폰트는 용량이 커서
+ * 3A 에서는 self-host 하지 않고 `system-ui` 로 둔다.
+ */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../assets/fonts/jetbrains-mono-latin-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../assets/fonts/jetbrains-mono-latin-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg: #f7f6f3;
   --bg-layer: #ffffff;
@@ -17,8 +37,9 @@
   --chamber-text: #edece8;
 
   --radius-card: 12px;
-  --font-body: "Pretendard", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  --font-body: "Pretendard", system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo",
+    "Malgun Gothic", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
 
   --motion-fast: 150ms;
   --motion-med: 300ms;
@@ -65,6 +86,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  /* 안드로이드 터치 위생 (brief-3A D2): 당겨서 새로고침·바운스 스크롤 억제. */
+  overscroll-behavior: none;
 }
 
 body {
@@ -75,10 +98,10 @@ body {
 #main {
   max-width: 720px;
   margin: 0 auto;
-  padding: 24px 20px 48px;
+  padding: 16px 20px 48px;
 }
 
-/* 가시 포커스 링 — 스펙 §9. 키보드 포커스에만 나타나되 충분히 뚜렷하게. */
+/* 가시 포커스 링 — 스펙 §9. */
 :focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
@@ -106,14 +129,37 @@ button {
   cursor: pointer;
 }
 
+.btn-primary,
+.btn-ghost,
+.btn-danger {
+  border-radius: var(--radius-card);
+  padding: 14px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
 .btn-primary {
   background: var(--accent);
   color: var(--accent-contrast);
-  border: none;
-  border-radius: var(--radius-card);
-  padding: 18px 28px;
-  font-size: 1.25rem;
-  font-weight: 600;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text) 25%, transparent);
+}
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+button[disabled],
+.btn-ghost[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.home-start {
+  padding: 20px 30px;
+  font-size: 1.35rem;
 }
 
 .numeric {
@@ -121,7 +167,14 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-.chamber {
-  background: var(--chamber-bg);
-  color: var(--chamber-text);
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
