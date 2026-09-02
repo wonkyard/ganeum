@@ -1,0 +1,18 @@
+{
+  "name": "가늠 (Ganeum)",
+  "short_name": "가늠",
+  "description": "내 포인팅 능력을 재고 화면을 나에게 맞춥니다.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F6F3",
+  "theme_color": "#F7F6F3",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

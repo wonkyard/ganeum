@@ -1,0 +1,127 @@
+/*
+ * 디자인 토큰 (화면설계 §0 비주얼 언어).
+ * 라이트가 기본. 다크는 `prefers-color-scheme` 또는 명시적 `[data-theme]` 로.
+ * 명도 대비는 WCAG AA 이상을 목표(본문/배경 조합 검증 완료).
+ */
+:root {
+  --bg: #f7f6f3;
+  --bg-layer: #ffffff;
+  --text: #1b1d21;
+  --text-muted: #5c5f66;
+  --accent: #0e7c86;
+  --accent-contrast: #ffffff;
+  --danger: #e4572e;
+  --focus-ring: #0e7c86;
+
+  --chamber-bg: #14161a;
+  --chamber-text: #edece8;
+
+  --radius-card: 12px;
+  --font-body: "Pretendard", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Menlo", monospace;
+
+  --motion-fast: 150ms;
+  --motion-med: 300ms;
+  --motion-slow: 550ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161a;
+    --bg-layer: #1d2026;
+    --text: #edece8;
+    --text-muted: #a2a5ac;
+    --accent: #4fd1c5;
+    --accent-contrast: #0b0c0e;
+    --focus-ring: #4fd1c5;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #14161a;
+  --bg-layer: #1d2026;
+  --text: #edece8;
+  --text-muted: #a2a5ac;
+  --accent: #4fd1c5;
+  --accent-contrast: #0b0c0e;
+  --focus-ring: #4fd1c5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-med: 0ms;
+    --motion-slow: 0ms;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+body {
+  padding: 0;
+  min-height: 100dvh;
+}
+
+#main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+/* 가시 포커스 링 — 스펙 §9. 키보드 포커스에만 나타나되 충분히 뚜렷하게. */
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-radius: 8px;
+  transition: top var(--motion-fast) ease;
+  z-index: 10;
+}
+.skip-link:focus {
+  top: 8px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  border-radius: var(--radius-card);
+  padding: 18px 28px;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.chamber {
+  background: var(--chamber-bg);
+  color: var(--chamber-text);
+}

@@ -1,0 +1,26 @@
+{
+  "name": "ganeum",
+  "version": "0.1.0",
+  "private": true,
+  "description": "브라우저에서 포인팅 능력을 재고 그 수치에 맞춰 화면 UI를 다시 그리는 웹앱",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@types/node": "^20.14.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "jsdom": "^25.0.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0",
+    "vitest": "^2.1.0"
+  }
+}
