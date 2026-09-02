@@ -64,9 +64,25 @@ describe("designConditions", () => {
   });
 
   it("precise 는 조건 9개, W 는 플랫폼 최소 히트 크기 아래로 안 내려감", () => {
-    const specs = designConditions("precise", 1000, 12);
+    const specs = designConditions("precise", 1000);
     expect(specs).toHaveLength(9);
     for (const s of specs) expect(s.W).toBeGreaterThanOrEqual(12);
+  });
+
+  it("P0-7: touch quick 은 W 바닥값 ≥ 24 CSS px, ID 는 큰→작은 순서", () => {
+    const specs = designConditions("quick", 288, "touch");
+    expect(specs).toHaveLength(3);
+    for (const s of specs) expect(s.W).toBeGreaterThanOrEqual(24);
+    expect(specs[0].ID).toBeGreaterThan(specs[1].ID);
+    expect(specs[1].ID).toBeGreaterThan(specs[2].ID);
+    // 손가락으로 현실적인 상단 난이도 (2mm 타깃 금지).
+    expect(specs[0].ID).toBeLessThan(4.2);
+  });
+
+  it("P0-7: mouse quick 바닥값은 touch 보다 작다 (계기 정밀도)", () => {
+    const mouse = designConditions("quick", 288, "mouse");
+    const touch = designConditions("quick", 288, "touch");
+    expect(mouse[0].W).toBeLessThan(touch[0].W);
   });
 
   it("각 조건의 ID 가 log2(A/W+1) 과 일치", () => {

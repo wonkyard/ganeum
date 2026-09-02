@@ -8,7 +8,7 @@
  */
 import { indexOfDifficulty } from "./fitts";
 import { conditionId } from "./ids";
-import type { MeasureMode } from "./types";
+import type { MeasureMode, PointerKind } from "./types";
 
 export interface Point {
   x: number;
@@ -81,29 +81,46 @@ export interface ConditionSpec {
   ID: number;
 }
 
+/** WCAG 2.5.8 최소 히트 크기 (CSS px). touch 조건의 너비 바닥값 (brief-3A §6). */
+export const TOUCH_MIN_HIT_PX = 24;
+/** mouse 조건의 너비 바닥값 (계기 정밀도용, 손가락 아님). */
+const MOUSE_MIN_HIT_PX = 6;
+
 /**
- * 조건 설계 (스펙 §4.3).
- * `reference` = 배치 계산의 기준 길이(보정값이 있으면 mm 기준 px, 없으면 뷰포트 최소변).
+ * 조건 설계 (스펙 §4.3 + brief-3A P0-7 포인터 타입 분기).
+ * `reference` = 배치 계산의 기준 길이(보정값이 있으면 mm 기준 px, 없으면 정사각 변 × 0.8).
  *
- * - quick: 3쌍, ID ≈ 5 / 3.5 / 2.5
- * - precise: A ∈ {0.3, 0.5, 0.7}·R  ×  W ∈ {1, 2, 4}·Wmin  → 9 조건
+ * - quick(mouse): 3쌍, ID ≈ 5 / 3.5 / 2.5.
+ * - quick(touch): W 바닥값 ≥ 24 CSS px. 상단 ID 는 낮아도 수용(손가락으로 2mm 타깃은
+ *   못 맞힘 → 재시도 폭주 → 조건 안 끝남). 가장 어려운 조건은 UI 에서 "일부러 어렵습니다".
+ * - precise: A ∈ {0.3, 0.5, 0.7}·R  ×  W ∈ {1, 2, 4}·Wmin  → 9 조건 (3B).
  */
 export function designConditions(
   mode: MeasureMode,
   reference: number,
-  minHitSize = 12,
+  pointerType: PointerKind = "mouse",
 ): ConditionSpec[] {
-  const specs: Array<{ A: number; W: number }> =
-    mode === "quick"
-      ? [
-          { A: 0.8 * reference, W: Math.max(minHitSize / 2, 0.026 * reference) },
-          { A: 0.5 * reference, W: Math.max(minHitSize / 2, 0.0485 * reference) },
-          { A: 0.3 * reference, W: Math.max(minHitSize / 2, 0.064 * reference) },
-        ]
-      : crossProduct([0.3, 0.5, 0.7], [1, 2, 4]).map(([af, wf]) => ({
-          A: af * reference,
-          W: Math.max(minHitSize, wf * minHitSize),
-        }));
+  let specs: Array<{ A: number; W: number }>;
+
+  if (mode === "quick" && pointerType === "touch") {
+    specs = [
+      { A: 0.82 * reference, W: Math.max(TOUCH_MIN_HIT_PX, 0.05 * reference) },
+      { A: 0.52 * reference, W: Math.max(TOUCH_MIN_HIT_PX + 4, 0.09 * reference) },
+      { A: 0.3 * reference, W: Math.max(TOUCH_MIN_HIT_PX + 16, 0.16 * reference) },
+    ];
+  } else if (mode === "quick") {
+    specs = [
+      { A: 0.8 * reference, W: Math.max(MOUSE_MIN_HIT_PX, 0.026 * reference) },
+      { A: 0.5 * reference, W: Math.max(MOUSE_MIN_HIT_PX, 0.0485 * reference) },
+      { A: 0.3 * reference, W: Math.max(MOUSE_MIN_HIT_PX, 0.064 * reference) },
+    ];
+  } else {
+    const minHit = pointerType === "touch" ? TOUCH_MIN_HIT_PX : 12;
+    specs = crossProduct([0.3, 0.5, 0.7], [1, 2, 4]).map(([af, wf]) => ({
+      A: af * reference,
+      W: Math.max(minHit, wf * minHit),
+    }));
+  }
 
   return specs.map(({ A, W }) => ({
     id: conditionId(A, W),

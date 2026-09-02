@@ -1,15 +1,9 @@
-/* 주 1–2 화면 레이아웃. 최종 비주얼은 주 3–4 이후. */
+/* 화면 + 컴포넌트 레이아웃. 비주얼 언어는 screen-design §0. */
 
 .screen {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.screen-home h1 {
-  font-size: 1.9rem;
-  line-height: 1.3;
-  margin: 24px 0 0;
 }
 
 .muted {
@@ -19,41 +13,389 @@
   font-size: 0.85rem;
 }
 
+/* --- 상단바 --- */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+.top-bar-left,
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.top-bar-title {
+  font-weight: 700;
+}
+.bar-toggle {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+/* --- S0 홈 --- */
+.home-title {
+  font-size: 1.9rem;
+  line-height: 1.3;
+  margin: 20px 0 0;
+}
+.home-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.home-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+.home-link[aria-disabled="true"] {
+  color: var(--text-muted);
+  cursor: default;
+}
+.home-footer {
+  margin-top: 8px;
+}
+.badge-degraded {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+/* --- S1 셋업 --- */
+.setup-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.setup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  padding: 16px;
+  border-radius: var(--radius-card);
+  border: 2px solid color-mix(in srgb, var(--text) 15%, transparent);
+  background: var(--bg-layer);
+}
+.setup-card.is-selected {
+  border-color: var(--accent);
+}
+.setup-card[aria-disabled="true"] {
+  opacity: 0.55;
+}
+.card-title {
+  font-weight: 600;
+}
+.card-soon {
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+.hand-fieldset {
+  border: 1px solid color-mix(in srgb, var(--text) 15%, transparent);
+  border-radius: var(--radius-card);
+  padding: 12px 16px;
+}
+.hand-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 20px;
+}
+.howto-box {
+  background: var(--bg-layer);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+}
+.howto-box p {
+  margin: 6px 0 0;
+}
+.setup-start {
+  align-self: flex-start;
+}
+
+/* --- 카운트다운 --- */
+.countdown-screen,
+.countdown {
+  align-items: center;
+  justify-content: center;
+  min-height: 50dvh;
+  display: flex;
+}
+.countdown-number {
+  font-family: var(--font-mono);
+  font-size: clamp(4rem, 22vw, 9rem);
+  font-weight: 700;
+  color: var(--accent);
+}
+.countdown-number.is-in {
+  animation: countdown-pop var(--motion-med) ease;
+}
+@keyframes countdown-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0.2;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* --- S2 챔버 --- */
 .chamber {
   background: var(--chamber-bg);
   color: var(--chamber-text);
   align-items: center;
   border-radius: var(--radius-card);
-  padding: 16px;
+  padding: 12px;
+  /* 안드로이드 터치 위생 (brief-3A D2). */
+  user-select: none;
+  -webkit-user-select: none;
 }
-
+.chamber-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  justify-content: space-between;
+}
+.progress-dots {
+  display: flex;
+  gap: 6px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--chamber-text);
+  opacity: 0.4;
+}
+.dot-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  opacity: 1;
+}
+.chamber-abort {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--chamber-text) 40%, transparent);
+  color: var(--chamber-text);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+}
+.chamber-hint {
+  color: color-mix(in srgb, var(--chamber-text) 75%, transparent);
+  min-height: 1.2em;
+}
 .target-canvas {
   display: block;
   touch-action: none;
   max-width: 100%;
-  /*
-   * 정사각 방어. 크기의 단일 소스는 TargetField(측정한 CSS 박스로 style.width/height
-   * 를 같은 값으로 박는다) 이고, 이 규칙은 JS 가 크기를 박기 전 한 프레임 동안의
-   * 세로 늘어남만 막는다. height 를 CSS 로 따로 고정하지 않는다.
-   */
   aspect-ratio: 1 / 1;
   border-radius: var(--radius-card);
 }
 
-.metric {
+/* --- S3 결과 --- */
+.results-head {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
-  padding: 10px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  gap: 12px;
 }
-.metric-label {
+.screen-results h1 {
+  margin: 0;
+}
+.fitts-chart {
+  margin: 0;
+}
+.fitts-chart-svg {
+  width: 100%;
+  height: auto;
+  background: var(--bg-layer);
+  border-radius: var(--radius-card);
+}
+.fitts-grid {
+  stroke: color-mix(in srgb, var(--text) 12%, transparent);
+  stroke-width: 1;
+}
+.fitts-tick,
+.fitts-axis-label {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+.fitts-tick-x {
+  text-anchor: middle;
+}
+.fitts-tick-y {
+  text-anchor: end;
+}
+.fitts-axis-label {
+  text-anchor: middle;
+  font-size: 11px;
+}
+.fitts-line {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  fill: none;
+}
+.fitts-dot {
+  fill: var(--text);
+}
+.fitts-caption {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+}
+.throughput-tile {
+  background: var(--bg-layer);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.throughput-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 2.6rem;
+}
+.count-up.fade-in {
+  animation: fade-in var(--motion-med) ease;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.stat-tile {
+  background: var(--bg-layer);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-tile-label {
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
-.metric-value {
+.stat-tile-value {
   font-weight: 600;
 }
+.stat-tile-badge {
+  font-size: 0.72rem;
+  color: var(--danger);
+}
+.disclosure {
+  border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  padding-top: 8px;
+}
+.disclosure-summary {
+  background: transparent;
+  border: none;
+  padding: 6px 0;
+  font-size: 1rem;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.disclosure-panel {
+  padding: 4px 0 8px 22px;
+}
+.disclosure-panel p {
+  margin: 6px 0;
+}
+.reserved-slot {
+  border: 1px dashed color-mix(in srgb, var(--text) 20%, transparent);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  text-align: center;
+}
+.disclaimer {
+  margin: 0;
+}
+.results-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.screen-recover {
+  align-items: flex-start;
+  gap: 12px;
+}
 
-.screen-results h1 {
-  margin-bottom: 8px;
+/* --- S5 카드 --- */
+.result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+.result-card-frame {
+  max-width: 360px;
+  width: 100%;
+}
+.result-card-canvas {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-card);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+/* --- 모달 --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+.modal-dialog {
+  background: var(--bg-layer);
+  color: var(--text);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  max-width: 400px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.modal-body {
+  margin: 0;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 480px) {
+  .setup-cards {
+    grid-template-columns: 1fr;
+  }
+  .stat-tiles {
+    grid-template-columns: 1fr;
+  }
 }
