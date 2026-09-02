@@ -1,0 +1,9 @@
+# 모든 텍스트 파일은 저장소에 LF 로 저장 — OS 간 일관성(스펙: 포터블).
+* text=auto eol=lf
+
+# 바이너리로 취급(줄바꿈 정규화 금지).
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
