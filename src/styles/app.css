@@ -31,6 +31,12 @@
   display: block;
   touch-action: none;
   max-width: 100%;
+  /*
+   * 정사각 방어. 크기의 단일 소스는 TargetField(측정한 CSS 박스로 style.width/height
+   * 를 같은 값으로 박는다) 이고, 이 규칙은 JS 가 크기를 박기 전 한 프레임 동안의
+   * 세로 늘어남만 막는다. height 를 CSS 로 따로 고정하지 않는다.
+   */
+  aspect-ratio: 1 / 1;
   border-radius: var(--radius-card);
 }
 

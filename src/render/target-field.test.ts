@@ -23,15 +23,26 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/**
+ * 레이아웃은 필드가 잰 정사각 크기(`size`)에서 파생한다. jsdom 은 레이아웃 정보가
+ * 없어 `size` 가 뷰포트 최소변으로 폴백되지만, 중심을 `size/2` 로 두는 한 진행
+ * 로직 테스트에는 영향이 없다.
+ */
 function makeField(onComplete: (taps: unknown[]) => void, now: () => number) {
   const canvas = document.createElement("canvas");
-  const layout = generateTargetLayout({
-    center: { x: 200, y: 200 },
-    amplitude: 300,
-    width: 40,
-    count: 5,
+  return new TargetField({
+    canvas,
+    buildLayout: (size) =>
+      generateTargetLayout({
+        center: { x: size / 2, y: size / 2 },
+        amplitude: 300,
+        width: 40,
+        count: 5,
+      }),
+    reducedMotion: true,
+    now,
+    onComplete,
   });
-  return new TargetField({ canvas, layout, reducedMotion: true, now, onComplete });
 }
 
 describe("TargetField 진행 로직", () => {
@@ -59,16 +70,16 @@ describe("TargetField 진행 로직", () => {
     let clock = 0;
     const onComplete = vi.fn();
     const canvas = document.createElement("canvas");
-    const layout = generateTargetLayout({
-      center: { x: 200, y: 200 },
-      amplitude: 300,
-      width: 20,
-      count: 5,
-    });
     const taps: Array<{ error: boolean }> = [];
     const field = new TargetField({
       canvas,
-      layout,
+      buildLayout: (size) =>
+        generateTargetLayout({
+          center: { x: size / 2, y: size / 2 },
+          amplitude: 300,
+          width: 20,
+          count: 5,
+        }),
       reducedMotion: true,
       now: () => (clock += 100),
       onTap: (t) => taps.push(t),
@@ -76,7 +87,7 @@ describe("TargetField 진행 로직", () => {
     });
 
     const firstIdx = field.currentTargetIndex;
-    // 현재 타깃에서 멀리 떨어진 지점을 누른 것으로 시뮬레이션.
+    // 현재 타깃에서 멀리 떨어진 지점(0,0)을 누른 것으로 시뮬레이션.
     (field as unknown as { registerTap(x: number, y: number, p: string): void }).registerTap(
       0,
       0,
@@ -86,6 +97,45 @@ describe("TargetField 진행 로직", () => {
     expect(taps[0].error).toBe(true);
     expect(field.currentTargetIndex).toBe(firstIdx); // 진행 안 함
     expect(onComplete).not.toHaveBeenCalled();
+    field.destroy();
+  });
+
+  it("레이아웃 좌표와 히트판정이 같은 좌표계 — 정확히 타깃 중심을 누르면 히트", () => {
+    let clock = 0;
+    const onComplete = vi.fn();
+    const canvas = document.createElement("canvas");
+    let currentSize = 0;
+    const field = new TargetField({
+      canvas,
+      buildLayout: (size) => {
+        currentSize = size;
+        return generateTargetLayout({
+          center: { x: size / 2, y: size / 2 },
+          amplitude: size * 0.6,
+          width: 24,
+          count: 5,
+        });
+      },
+      reducedMotion: true,
+      now: () => (clock += 100),
+      onComplete,
+    });
+
+    // 필드가 실제로 잰 좌표계(currentSize)에서 현재 타깃 중심을 계산해 그대로 누른다.
+    const layout = generateTargetLayout({
+      center: { x: currentSize / 2, y: currentSize / 2 },
+      amplitude: currentSize * 0.6,
+      width: 24,
+      count: 5,
+    });
+    const target = layout.positions[field.currentTargetIndex];
+    (field as unknown as { registerTap(x: number, y: number, p: string): void }).registerTap(
+      target.x,
+      target.y,
+      "mouse",
+    );
+
+    expect(field.currentTargetIndex).not.toBe(layout.order[0]); // seqPos 가 진행됨
     field.destroy();
   });
 });

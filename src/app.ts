@@ -3,8 +3,7 @@
  * S1/S3 의 완성 디자인, 보정, 적응, 카드는 주 3–4 이후이며 여기서는 다루지 않는다.
  */
 import { analyzeSession, type SessionAnalysis } from "./core/analyze";
-import { designConditions } from "./core/task";
-import { generateTargetLayout } from "./core/task";
+import { designConditions, generateTargetLayout, type ConditionSpec } from "./core/task";
 import type { Condition, Hand, MeasureMode, Tap } from "./core/types";
 import { TargetField, type RawTap } from "./render/target-field";
 import { createRouter } from "./ui/router";
@@ -19,8 +18,13 @@ interface AppState {
 }
 
 export interface AppHandle {
-  /** 자동화/스모크 테스트용 훅. 현재 타깃을 살짝 흔든 좌표로 누른다. */
+  /** 자동화/스모크 테스트용 훅. 현재 타깃을 표시 좌표로 누른다. */
   tapCurrentTarget(): void;
+  /**
+   * 자동화용: 현재 타깃 중심의 화면(뷰포트) 좌표. 표시 박스 기준이라, 좌표계가
+   * 어긋나면 이 지점을 실제로 클릭해도 히트가 안 잡힌다 — 회귀 테스트가 이용한다.
+   */
+  currentTargetPoint(): { x: number; y: number } | null;
   getState(): AppState;
 }
 
@@ -61,41 +65,41 @@ export function createApp(root: HTMLElement): AppHandle {
     section.append(el("p", { class: "small" }, t("measure.pointerRequired")));
     root.append(section);
 
-    // 캔버스를 뷰포트에 맞춘다.
-    const size = Math.min(window.innerWidth || 800, (window.innerHeight || 600) * 0.9);
-    canvas.width = size;
-    canvas.height = size;
-    canvas.style.width = `${size}px`;
-    canvas.style.height = `${size}px`;
-
-    const reference = size * 0.8;
-    const specs = designConditions(mode, reference);
-    const collected: Condition[] = [];
     const reduced = prefersReducedMotion();
+    const collected: Condition[] = [];
+    // 조건 개수는 모드에서 바로 나온다(quick 3 / precise 9 — core/task designConditions).
+    const total = mode === "quick" ? 3 : 9;
+
+    // 캔버스 크기의 단일 소스는 TargetField 다. 조건 스펙(A·W·ID)도 필드가 잰
+    // 정사각 크기에서 파생한다 — app.ts 는 별도 size 를 미리 잡지 않는다.
+    let specs: ConditionSpec[] | null = null;
+    const specsFor = (size: number): ConditionSpec[] => {
+      if (!specs) specs = designConditions(mode, size * 0.8);
+      return specs;
+    };
 
     const runCondition = (index: number): void => {
-      if (index >= specs.length) {
+      if (index >= total) {
         finish();
         return;
       }
-      const spec = specs[index];
-      status.textContent = t("measure.conditionProgress", {
-        current: index + 1,
-        total: specs.length,
-      });
-      const layout = generateTargetLayout({
-        center: { x: size / 2, y: size / 2 },
-        amplitude: Math.min(spec.A, size - spec.W - 8),
-        width: spec.W,
-        count: 11,
-      });
+      status.textContent = t("measure.conditionProgress", { current: index + 1, total });
       activeField?.destroy();
       activeField = new TargetField({
         canvas,
-        layout,
         reducedMotion: reduced,
+        buildLayout: (size) => {
+          const spec = specsFor(size)[index];
+          return generateTargetLayout({
+            center: { x: size / 2, y: size / 2 },
+            amplitude: Math.min(spec.A, size - spec.W - 8),
+            width: spec.W,
+            count: 11,
+          });
+        },
         onComplete: (raw) => {
-          collected.push(toCondition(spec, raw));
+          if (!specs) throw new Error("조건 스펙이 아직 없습니다");
+          collected.push(toCondition(specs[index], raw));
           activeField?.destroy();
           activeField = null;
           runCondition(index + 1);
@@ -156,8 +160,10 @@ export function createApp(root: HTMLElement): AppHandle {
 
   return {
     tapCurrentTarget() {
-      if (!activeField) return;
-      activeField.tapCurrentTarget("mouse");
+      activeField?.tapCurrentTarget("mouse");
+    },
+    currentTargetPoint() {
+      return activeField?.currentTargetClientPoint ?? null;
     },
     getState: () => store.get(),
   };
