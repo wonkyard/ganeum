@@ -1,0 +1,20 @@
+node_modules/
+dist/
+coverage/
+*.local
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Env / secrets — never committed
+.env
+.env.*
+!.env.example
