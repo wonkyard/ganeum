@@ -97,3 +97,49 @@ describe("designConditions", () => {
     expect(a.map((s) => s.id)).toEqual(b.map((s) => s.id));
   });
 });
+
+describe("designConditions — 정밀 측정 (5-6-b)", () => {
+  it("9개 = 3 진폭 × 3 너비 격자", () => {
+    const specs = designConditions("precise", 1000, "mouse");
+    expect(specs).toHaveLength(9);
+    const amps = [...new Set(specs.map((s) => Math.round(s.A)))].sort((a, b) => a - b);
+    expect(amps).toEqual([300, 500, 700]);
+    const widths = [...new Set(specs.map((s) => Math.round(s.W)))].sort((a, b) => a - b);
+    expect(widths).toEqual([12, 24, 48]);
+    // 격자가 온전한가: 각 (A,W) 조합이 정확히 한 번.
+    const pairs = specs.map((s) => `${Math.round(s.A)}x${Math.round(s.W)}`).sort();
+    expect(new Set(pairs).size).toBe(9);
+  });
+
+  it("반환이 ID 오름차순 (쉬움 → 어려움 램프)", () => {
+    const specs = designConditions("precise", 1000, "mouse");
+    for (let i = 1; i < specs.length; i++) {
+      expect(specs[i].ID).toBeGreaterThanOrEqual(specs[i - 1].ID);
+    }
+    // quick 은 반대로 (어려운 것 먼저) 유지된다.
+    const quick = designConditions("quick", 1000);
+    expect(quick[0].ID).toBeGreaterThan(quick[quick.length - 1].ID);
+  });
+
+  it("포인터타입 바닥값: touch 24 / mouse 12 CSS px 유지", () => {
+    const touch = designConditions("precise", 1000, "touch");
+    for (const s of touch) expect(s.W).toBeGreaterThanOrEqual(24);
+    expect([...new Set(touch.map((s) => Math.round(s.W)))].sort((a, b) => a - b)).toEqual([
+      24, 48, 96,
+    ]);
+    const mouse = designConditions("precise", 1000, "mouse");
+    expect(Math.min(...mouse.map((s) => s.W))).toBe(12);
+  });
+
+  it("각 조건의 ID 가 log2(A/W+1) 과 일치", () => {
+    for (const s of designConditions("precise", 900, "touch")) {
+      expect(s.ID).toBeCloseTo(indexOfDifficulty(s.A, s.W), 12);
+    }
+  });
+
+  it("결정적: 같은 입력이면 같은 조건 ID 순서", () => {
+    const a = designConditions("precise", 777, "mouse");
+    const b = designConditions("precise", 777, "mouse");
+    expect(a.map((s) => s.id)).toEqual(b.map((s) => s.id));
+  });
+});

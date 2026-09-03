@@ -390,6 +390,76 @@
 .wsp-citations a {
   color: var(--accent);
 }
+/* 좌우손 비교 · 시점 비교 (5-6-b) */
+.wsp-hand-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.wsp-hc-value {
+  margin: 0;
+  font-weight: 600;
+}
+.wsp-history-delta {
+  margin: 0;
+  font-weight: 600;
+}
+.wsp-history-lowconf {
+  margin: 0;
+}
+.wsp-sparkline-fig {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.wsp-sparkline {
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+}
+.wsp-sparkline-path {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.wsp-sparkline-dot {
+  fill: var(--accent);
+}
+.wsp-sparkline-dot.is-lowconf {
+  fill: color-mix(in srgb, var(--text) 35%, transparent);
+}
+
+/* --- S1 양손 비교 옵션 (5-6-b) --- */
+.both-hands-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.both-hands-row[hidden] {
+  display: none;
+}
+.both-hands-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.both-hands-hint {
+  margin: 0;
+}
+
+/* --- S2 "손 바꾸세요" 인터스티셜 (5-6-b) --- */
+.screen-interstitial {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 60vh;
+}
+.interstitial-body {
+  margin: 0;
+  max-width: 34ch;
+}
 
 /* --- S4 적응 --- */
 .screen-adapt h1 {

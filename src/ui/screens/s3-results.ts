@@ -2,14 +2,20 @@
 import { el } from "../dom";
 import { t, formatNumber, formatDate } from "../../i18n";
 import { analyzeSession } from "../../core/analyze";
+import { computeAsymmetry } from "../../core/asymmetry";
 import type { Profile } from "../../core/types";
-import { getProfile } from "../../storage/profiles";
+import { getProfile, loadProfiles } from "../../storage/profiles";
 import { createTopBar } from "../components/top-bar";
-import { FittsChart } from "../../render/fitts-chart";
+import { FittsChart, type FittsChartOverlay } from "../../render/fitts-chart";
 import { CountUpNumber } from "../components/count-up-number";
 import { createStatTile } from "../components/stat-tile";
 import { createDisclosure } from "../components/disclosure";
-import { createWithinSubjectPanel, presetOverlays } from "../components/within-subject-panel";
+import {
+  createWithinSubjectPanel,
+  presetOverlays,
+  type HandComparison,
+  type HistoryComparison,
+} from "../components/within-subject-panel";
 import { explainResult } from "../../ai/rules";
 import type { MountContext } from "../screen";
 
@@ -51,6 +57,69 @@ function derive(profile: Profile): Derived {
   };
 }
 
+function isLowConfidence(p: Profile): boolean {
+  return p.weSource === "nominal-fallback" || !(p.fitts.r2 >= 0.7) || !(p.fitts.b > 0);
+}
+
+/**
+ * 정밀 양손 세션이면 좌우 처리율 + 비대칭을 구한다. `sessionId` 로 형제 프로파일을
+ * 찾고, 저장된 `asymmetry` 가 있으면 그대로 쓰되 없으면 두 처리율로 계산한다.
+ */
+function deriveHandComparison(profile: Profile, all: Profile[]): HandComparison | undefined {
+  if (profile.mode !== "precise") return undefined;
+  const sibling = all.find(
+    (p) => p.sessionId === profile.sessionId && p.id !== profile.id && p.hand !== profile.hand,
+  );
+  if (!sibling) return undefined;
+  const rightP = profile.hand === "right" ? profile : sibling;
+  const leftP = profile.hand === "left" ? profile : sibling;
+  const asymmetry =
+    profile.asymmetry ??
+    computeAsymmetry({ throughput: rightP.throughput }, { throughput: leftP.throughput });
+  return { right: rightP.throughput, left: leftP.throughput, asymmetry };
+}
+
+/**
+ * 같은 손 + 같은 모드의 과거 세션이 있으면 시점 비교를 구한다. "직전 세션" 은 이번
+ * 측정보다 먼저 만들어진 다른 세션 중 가장 최근 것. 3점 이상(현재 포함)이면 추이
+ * 시계열을 함께 돌려준다.
+ */
+function deriveHistory(
+  profile: Profile,
+  currentTp: number,
+  all: Profile[],
+): HistoryComparison | undefined {
+  const prior = all
+    .filter(
+      (p) =>
+        p.id !== profile.id &&
+        p.sessionId !== profile.sessionId &&
+        p.hand === profile.hand &&
+        p.mode === profile.mode &&
+        p.createdAt < profile.createdAt,
+    )
+    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  if (prior.length === 0) return undefined;
+
+  const previous = prior[prior.length - 1];
+  const series = [...prior, profile].map((p) => ({
+    date: p.createdAt,
+    throughput: p === profile ? currentTp : p.throughput,
+    lowConfidence: isLowConfidence(p),
+  }));
+
+  return {
+    previous: {
+      throughput: previous.throughput,
+      fit: previous.fitts,
+      date: previous.createdAt,
+      lowConfidence: isLowConfidence(previous),
+    },
+    deltaThroughput: currentTp - previous.throughput,
+    trend: series.length >= 3 ? series : undefined,
+  };
+}
+
 export function renderResults(ctx: MountContext): void {
   const wrap = el("section", { class: "screen screen-results" });
   wrap.append(createTopBar({ back: "/", go: ctx.go, rerender: ctx.rerender }));
@@ -69,6 +138,10 @@ export function renderResults(ctx: MountContext): void {
   const d = derive(profile);
   const reduced = ctx.reducedMotion();
 
+  const allProfiles = loadProfiles();
+  const handComparison = deriveHandComparison(profile, allProfiles);
+  const history = deriveHistory(profile, d.throughput, allProfiles);
+
   const heading = el("div", { class: "results-head" });
   heading.append(
     el("h1", { tabindex: "-1" }, t("result.title")),
@@ -77,6 +150,16 @@ export function renderResults(ctx: MountContext): void {
   wrap.append(heading);
 
   // --- 차트 ---
+  const overlays: FittsChartOverlay[] = presetOverlays();
+  if (history) {
+    overlays.push({
+      id: "prev",
+      a: history.previous.fit.a,
+      b: history.previous.fit.b,
+      visible: false,
+    });
+  }
+
   let chart: FittsChart | null = null;
   if (d.hasChart) {
     chart = new FittsChart({
@@ -84,7 +167,7 @@ export function renderResults(ctx: MountContext): void {
       fit: d.fit,
       animated: !reduced,
       reducedMotion: reduced,
-      overlays: presetOverlays(),
+      overlays,
     });
     ctx.addCleanup(() => chart?.destroy());
     wrap.append(chart.element);
@@ -147,12 +230,14 @@ export function renderResults(ctx: MountContext): void {
   );
   wrap.append(createDisclosure({ summary: t("result.explainToggle"), content: explainBody }));
 
-  // --- 피험자 내 비교 패널 (brief-3B-b §3) ---
+  // --- 피험자 내 비교 패널 (brief-3B-b §3 · 5-6-b §2·§3) ---
   if (chart) {
     wrap.append(
       createWithinSubjectPanel({
         chart,
         imprecise: d.weSource === "nominal-fallback" || !d.confident,
+        handComparison,
+        history,
       }),
     );
   }

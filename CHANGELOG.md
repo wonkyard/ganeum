@@ -2,6 +2,75 @@
 
 가늠(Ganeum) 변경 이력. 날짜는 작업 완료 기준.
 
+## [Unreleased] — 5-6-b: 정밀 측정 + 좌우손 비교 + 히스토리 비교
+
+작업 브랜치 `w56b-precise-hands-history`. 회사 브리프 `IDEA-20260901-1455/brief-5-6-b.md`.
+데모 3막(빠른 측정 → 결과 → 적응)은 그대로 두고, 그 위에 "정밀" 경로와 시점 비교를 얹는
+순수 추가형 라운드. `src/adapt/*` 미변경, 빠른 측정 경로 회귀 없음.
+
+### 1. 정밀 측정 모드 (조건 9개)
+
+- `src/core/task.ts` — `designConditions("precise", …)` 는 이미 9조건 격자
+  (A ∈ {0.3,0.5,0.7}·ref × W ∈ {1,2,4}·minHit)를 만든다. 이번 라운드는 반환을
+  **ID 오름차순**(쉬움 → 어려움 램프)으로 고정. 포인터타입 바닥값(touch 24 / mouse
+  12 CSS px)은 유지. 골든 테스트 추가(`task.test.ts` — 격자 온전성 / 정렬 / 바닥값).
+- `src/ui/screens/s1-setup.ts` — "정밀 측정" 카드 **활성화**(기존 "준비 중" 제거).
+  카드 택1 실제 토글(`aria-pressed` + `is-selected`). 정밀 선택 시 "양손 비교"
+  체크박스 노출. 카드에 포커스가 있을 때 스페이스는 카드 선택용(측정 시작 아님).
+- `src/ui/screens/s2-measure.ts` — 조건 수 = 모드별(quick 3 / precise 9). 진행
+  도트가 9개 반영. "가장 어려운 조건" 힌트는 quick 전용.
+- `src/ui/session-store.ts` — `bothHands: boolean` 추가.
+
+### 2. 좌우손 비교 (정밀 모드에서만)
+
+- `src/core/asymmetry.ts` (신규) — `computeAsymmetry(right, left)` 순수 함수
+  = (R.TP − L.TP) / mean. 한 손이라도 유효 처리율이 없으면 `null`. 골든 테스트
+  (`asymmetry.test.ts` — screen-design 예시값 16% 검산, 부호, null 경로).
+- `s2-measure.ts` — 양손 세션은 `runHand()` 를 손마다 반복한다. 첫 손 9조건 완주 →
+  **인앱 "손을 바꾸세요" 인터스티셜**(`.screen-interstitial`, 브라우저 dialog 금지,
+  `aria-live` 안내 + 제목 포커스) → "준비됐어요" → 둘째 손 9조건 → 결과.
+  두 Profile 은 공유 `sessionId` 로 저장(배열 상한 20 유지)되고, 완주 후 두 Profile
+  의 `asymmetry` 필드를 채워 다시 저장한다.
+- `src/ui/screens/s3-results.ts` — `deriveHandComparison()` 이 `sessionId` 로 형제
+  Profile 을 찾아 좌우 처리율 + 비대칭을 구한다(저장된 `asymmetry` 우선, 없으면
+  두 처리율로 계산).
+- `WithinSubjectPanel` — `handComparison` 옵션이 있으면 "왼손 X / 오른손 Y ·
+  비대칭 N%" 라인(`.wsp-hand-compare`). 한 손만 유효하면 안내 문구.
+
+### 3. S3 "지난 측정 대비" — 시점 비교
+
+- `s3-results.ts` — `deriveHistory()` 가 저장된 Profile 중 **같은 `hand` + 같은
+  `mode`** 이면서 이번 측정보다 먼저인 다른 세션을 찾는다. 직전 세션 = 그중 가장 최근.
+- `WithinSubjectPanel` — `history` 옵션:
+  - `FittsChart` 오버레이에 **직전 세션 회귀선** 추가 + 토글 칩(`prev`, 날짜 라벨).
+  - "지난 측정 대비 처리율 ±X bits/초 (↑/↓)" 한 줄(`.wsp-history-delta`), 0 근처는
+    "거의 같아요".
+  - 측정 3회 이상(현재 포함)이면 자체 SVG **처리율 추이 스파크라인**(라이브러리 0,
+    날짜순 3~10점). `weSource="nominal-fallback"` / 회귀 게이트 미통과 점은 회색 +
+    "신뢰도 낮음" 표기. 직전 세션이 저신뢰면 비교 경고 문구.
+- `FittsChartOverlay` 를 `s3-results` 가 직접 조립(`presetOverlays()` + 선택적
+  `prev`).
+
+### 데이터 모델 / 문서
+
+- 저장 스키마(Profile) **형태 불변** — `sessionId`·`asymmetry` 는 v2 필드 그대로.
+  `docs/profile-format.md` 에 "양손 세션 = 두 Profile 공유 `sessionId`" 규칙 명시.
+
+### i18n
+
+- 새 문자열 전부 `src/i18n/ko.ts` 키(`setup.bothHands*`, `measure.switchHands*`,
+  `measure.conditionProgressHand`, `result.handCompare*`, `result.asymmetry*`,
+  `result.history*`). `en` 키 파리티 유지(값은 ko 폴백 — 번역은 주 7–8).
+
+### 테스트
+
+- 단위(vitest): `asymmetry.test.ts`(신규 6), `task.test.ts`(정밀 5),
+  `within-subject-panel.test.ts`(좌우손 3 + 시점 6). core 커버리지 게이트 유지
+  (100 / 93 / 100 / 100).
+- Playwright: `precise-hands-history.spec.ts`(신규 3 — 정밀 9조건 완주 / 양손
+  인터스티셜 + sessionId 연결 / 과거 세션 시드 후 델타·오버레이·스파크라인).
+  기존 7개 그대로 초록. 폰 뷰포트.
+
 ## [Unreleased] — 5-6-a: 교육 페이지(S6) + 적응 샘플 UI 2개
 
 작업 브랜치 `w56a-education-samples`. 회사 브리프 `IDEA-20260901-1455/brief-5-6-a.md`.

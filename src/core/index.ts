@@ -6,6 +6,7 @@ export * from "./regression";
 export * from "./outliers";
 export * from "./throughput";
 export * from "./task";
+export * from "./asymmetry";
 export * from "./ids";
 export * from "./migrate";
 export * from "./analyze";

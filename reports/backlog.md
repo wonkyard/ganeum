@@ -1,5 +1,48 @@
 # ganeum — backlog
 
+## 2026-09-03 — 5-6-b: 정밀 측정 + 좌우손 비교 + 히스토리 비교 · 작업 브랜치 `w56b-precise-hands-history`
+
+Why: 회사 브리프 `reports/IDEA-20260901-1455/brief-5-6-b.md`. 데모 3막(빠른 측정 →
+결과 → 적응)은 그대로 두고, 그 위에 "정밀" 측정 경로와 시점 비교를 얹는다. `spec.md`
+§4.2(비대칭)·§4.3(정밀 조건 격자)·§5(피험자 내 비교 — 인구 백분위 없음)·§7(데이터 모델).
+
+Scope (이번 브랜치 — 딱 세 항목, 그 밖은 5-6-c 이후):
+
+1. **정밀 측정 모드 (조건 9개)**
+   - `src/core/task.ts designConditions("precise", ref, ptr)` — 이미 9조건 격자
+     (A ∈ {0.3,0.5,0.7}·ref × W ∈ {1,2,4}·minHit)를 만든다. 이번 라운드는 반환을
+     **ID 오름차순 정렬**(쉬움→어려움 램프)로 고정하고 골든 테스트를 추가한다.
+     포인터타입 바닥값(touch 24 / mouse 12 CSS px)은 유지.
+   - `s1-setup.ts` — "정밀 측정" 카드 **활성화**(현재 "준비 중" 비활성). 카드 택1 실제
+     토글. 정밀 선택 시 "양손 비교" 체크박스 노출.
+   - `s2-measure.ts` — 조건 수 = 모드별(quick 3 / precise 9). 진행 도트가 9개 반영.
+     "가장 어려운 조건" 힌트는 quick 전용(정밀은 쉬움부터라 부적절).
+
+2. **좌우손 비교 (정밀 모드에서만)**
+   - S1 "양손 비교" 체크 시: 첫 손 9조건 → **인앱 "손 바꾸세요" 인터스티셜**
+     (브라우저 dialog 금지) → 둘째 손 9조건 → 결과.
+   - 한 세션 = 두 Profile, 공유 `sessionId`(스키마 v2에 이미 있음)로 연결. 각 Profile
+     은 자기 `hand`. 배열 상한 20 유지.
+   - `src/core/asymmetry.ts` — `computeAsymmetry(right, left)` 순수 함수
+     (= (R.TP − L.TP) / mean). 한 손이라도 유효 분석 없으면 `null`. 골든 테스트.
+   - S3 비교 패널에 "왼손 X / 오른손 Y · 비대칭 N%" 라인 (`screen-design.md` S3 ⑤).
+
+3. **S3 "지난 측정 대비" — 시점 비교**
+   - `WithinSubjectPanel` 확장. 저장된 Profile 중 **같은 hand + 같은 mode**인 과거
+     세션이 있으면:
+     - `FittsChart` 오버레이에 **직전 세션 회귀선** 토글 칩(옅은 실선 + 날짜 라벨).
+     - "지난 측정 대비 처리율 ±X bits/초 (↑/↓)" 한 줄.
+     - (측정 3회+) 자체 SVG 처리율 추이 스파크라인(날짜순 3~10점, 라이브러리 0).
+   - `weSource="nominal-fallback"` / 신뢰도 게이트 미통과 세션은 스파크라인에서 회색 +
+     "신뢰도 낮음" 표기.
+
+Out of scope: 접근성 1차 감사·"접근성 선언" 페이지(5-6-c), AI 해설, PWA 오프라인,
+다크모드 마감, 카피 정리. `src/adapt/*` 미변경. 빠른 측정 경로 회귀 없음.
+
+Done-when: brief-5-6-b.md 의 done-when 그대로. typecheck/test/build 초록, core 커버리지
+게이트 유지, Playwright 기존 + 신규 3개(정밀 9조건 / 양손 인터스티셜 / 히스토리 시드) 초록,
+사용자 대면 리터럴 0.
+
 ## 2026-09-03 — 5-6-a: 교육 페이지(S6) + 적응 샘플 UI 2개 · 작업 브랜치 `w56a-education-samples`
 
 Why: 회사 브리프 `reports/IDEA-20260901-1455/brief-5-6-a.md`. 하드 MVP(3B-b)로 데모

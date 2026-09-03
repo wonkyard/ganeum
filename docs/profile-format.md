@@ -22,12 +22,12 @@ v1 필드의 **의미는 바뀌지 않는다**. 형태가 바뀌면 `schema` 를
 |---|---|---|---|
 | `schema` | `1 \| 2` | v1 | 스키마 버전. 없으면 v0 으로 간주하고 마이그레이션. |
 | `id` | string | v1 | `<base36 ms>-<8 hex>` — 사전순 = 생성순. |
-| `sessionId` | string | **v2** | 이 측정이 속한 세션. 3B 양손 대비용. 없으면 `id` 로 채움. |
+| `sessionId` | string | **v2** | 이 측정이 속한 세션. 없으면 `id` 로 채움. **정밀 "양손 비교" 세션은 두 Profile 이 같은 `sessionId` 를 공유**하며 각 Profile 은 자기 `hand` 를 가진다(5-6-b). 한 손 세션은 `sessionId === id`. |
 | `appVersion` | string | **v2** | 이 프로파일을 만든 앱 버전(package.json). 마이그레이션 시 `"unknown"`. |
 | `createdAt` | string (ISO 8601) | v1 | 측정 시각. |
 | `pointerType` | `"mouse" \| "touch" \| "pen"` | v1 | Pointer Events 의 `pointerType`. |
 | `hand` | `"right" \| "left"` | v1 | 측정에 쓴 손. |
-| `mode` | `"quick" \| "precise"` | v1 | 측정 종류. 3A 는 `quick` 만. |
+| `mode` | `"quick" \| "precise"` | v1 | 측정 종류. `quick` = 3조건, `precise` = 9조건(5-6-b). |
 | `calibrated` | boolean | v1 | 화면 물리 보정 여부. 3A 는 항상 false (SC 는 3B). |
 | `viewport` | object | v1 | `{ w, h, dpr, pxPerMm }`. `pxPerMm` 은 미보정이면 `null`. |
 | `conditions` | array | v1 | 조건별 원시 탭. 아래 참조. |
@@ -37,7 +37,7 @@ v1 필드의 **의미는 바뀌지 않는다**. 형태가 바뀌면 `schema` 를
 | `weSource` | `"measured" \| "nominal-fallback"` | **v2** | We 를 실측했는지, 표본 부족으로 명목 너비로 폴백했는지. |
 | `errorRate` | number | v1 | **놓친 타깃 수 / 전체 타깃 수** (탭 수 아님, brief-3A P0-4). 0–1. |
 | `consistencySD` | number | v1 | 조건 내 MT 표준편차의 평균 (초). |
-| `asymmetry` | number \| null | v1 | (오른손 TP − 왼손 TP) / 평균. 정밀 측정에서만, 아니면 `null` (3B). |
+| `asymmetry` | number \| null | v1 | (오른손 TP − 왼손 TP) / 평균 (`src/core/asymmetry.ts computeAsymmetry`). 정밀 "양손 비교" 세션의 **두 Profile 에 같은 값**이 채워진다. 한 손 세션이거나 한 손만 유효하면 `null`. |
 
 ## `conditions[]`
 
