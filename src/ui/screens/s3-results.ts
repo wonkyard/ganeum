@@ -139,6 +139,11 @@ export function renderResults(ctx: MountContext): void {
     "div",
     { class: "explain-body" },
     ...claims.map((c) => el("p", {}, t(c.key, c.params))),
+    el(
+      "p",
+      { class: "small" },
+      el("a", { href: "#/about#fitts", class: "about-deep-link" }, t("result.explainMore")),
+    ),
   );
   wrap.append(createDisclosure({ summary: t("result.explainToggle"), content: explainBody }));
 

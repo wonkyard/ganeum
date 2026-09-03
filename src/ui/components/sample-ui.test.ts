@@ -82,3 +82,51 @@ describe("SampleUI", () => {
     expect(host.querySelector(".sample-ui")).toBeNull();
   });
 });
+
+describe("SampleUI — 로그인 폼 / 미디어 툴바 (brief-5-6-a §2)", () => {
+  it("로그인 폼: 필드·버튼·링크 렌더 + 상호작용", () => {
+    const host = mount();
+    const ui = new SampleUI({ host, kind: "login" });
+    expect(ui.getKind()).toBe("login");
+    expect(host.querySelectorAll(".sample-ui-field")).toHaveLength(2);
+    const submit = host.querySelector(".sample-ui-submit") as HTMLButtonElement;
+    const link = host.querySelector(".sample-ui-link") as HTMLAnchorElement;
+    expect(submit).not.toBeNull();
+    expect(link).not.toBeNull();
+    link.click();
+    submit.closest("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    expect(host.querySelector(".sample-ui-status")?.textContent).not.toBe("");
+    ui.destroy();
+  });
+
+  it("미디어 툴바: 아이콘 버튼 6개 + 재생/일시정지 토글", () => {
+    const host = mount();
+    const ui = new SampleUI({ host, kind: "toolbar" });
+    const buttons = host.querySelectorAll(".sample-ui-icon-btn");
+    expect(buttons).toHaveLength(6);
+    const play = host.querySelector('[data-btn="play"]') as HTMLButtonElement;
+    const first = play.getAttribute("aria-label");
+    play.click();
+    expect(play.getAttribute("aria-label")).not.toBe(first);
+    play.click();
+    expect(play.getAttribute("aria-label")).toBe(first);
+    ui.destroy();
+  });
+
+  it.each(["keypad", "login", "toolbar"] as const)(
+    "%s: adapted 모드에서 sizing 결과가 CSS 변수로 반영된다",
+    (kind) => {
+      const host = mount();
+      const ui = new SampleUI({ host, kind, initialMode: "adapted" });
+      ui.applySizing(bigHand);
+      const root = host.querySelector(".sample-ui") as HTMLElement;
+      expect(parseFloat(root.style.getPropertyValue("--hit-size"))).toBeCloseTo(bigHand!.wStar, 1);
+      expect(parseFloat(root.style.getPropertyValue("--gap"))).toBeCloseTo(bigHand!.gap, 1);
+      expect(parseFloat(root.style.getPropertyValue("--hit-size"))).toBeGreaterThan(BASE_HIT_SIZE_PX);
+      // base 로 토글하면 기본 배치로 되돌아간다.
+      ui.setMode("base");
+      expect(root.style.getPropertyValue("--hit-size")).toBe(`${BASE_HIT_SIZE_PX}px`);
+      ui.destroy();
+    },
+  );
+});

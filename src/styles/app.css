@@ -671,6 +671,257 @@
   gap: 10px;
 }
 
+/* --- S4 샘플 탭 (키패드 / 로그인 폼 / 미디어 툴바) --- */
+.adapt-sample-col {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.adapt-sample-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.adapt-sample-tab {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.82rem;
+}
+.adapt-sample-tab[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+.adapt-sample-host {
+  display: flex;
+}
+
+/* 로그인 폼 목업 — 필드 높이·버튼·링크 히트 영역이 --hit-size / --gap 를 따른다. */
+.sample-ui-login {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--pad);
+  min-width: 200px;
+  transition:
+    gap var(--adapt-transition, 250ms) ease,
+    padding var(--adapt-transition, 250ms) ease;
+}
+.sample-ui-field {
+  min-height: var(--hit-size);
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
+  background: var(--bg);
+  font: inherit;
+  transition: min-height var(--adapt-transition, 250ms) ease;
+}
+.sample-ui-submit {
+  min-height: var(--hit-size);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+  transition: min-height var(--adapt-transition, 250ms) ease;
+}
+.sample-ui-link {
+  align-self: flex-start;
+  color: var(--accent);
+  padding: calc(var(--gap) / 2) 4px;
+  font-size: 0.85rem;
+  transition: padding var(--adapt-transition, 250ms) ease;
+}
+.sample-ui-status {
+  margin: 0;
+  min-height: 1.2em;
+}
+
+/* 미디어 툴바 목업 — 아이콘 버튼 크기·간격이 --hit-size / --gap 를 따른다. */
+.sample-ui-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap);
+  padding: var(--pad);
+  justify-content: center;
+  transition:
+    gap var(--adapt-transition, 250ms) ease,
+    padding var(--adapt-transition, 250ms) ease;
+}
+.sample-ui-icon-btn {
+  width: var(--hit-size);
+  height: var(--hit-size);
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+  background: var(--bg);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    width var(--adapt-transition, 250ms) ease,
+    height var(--adapt-transition, 250ms) ease;
+}
+.sample-ui-icon-btn:active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* --- S6 교육 페이지 --- */
+.screen-about h1 {
+  margin: 0;
+}
+.about-lead {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+.about-toc {
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  border-radius: var(--radius-card);
+  padding: 10px 14px;
+}
+.about-toc-list {
+  margin: 0;
+  padding-left: 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.about-toc-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+.about-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.about-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-margin-top: 12px;
+}
+.about-section h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.about-section p {
+  margin: 0;
+  max-width: 66ch;
+  line-height: 1.6;
+}
+.about-not-diagnosis {
+  font-weight: 600;
+  color: var(--danger);
+}
+.about-citations {
+  margin: 0;
+  padding-left: 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.about-citations a {
+  color: var(--accent);
+}
+.about-deep-link {
+  color: var(--accent);
+}
+.about-ring {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+.about-ring-svg {
+  width: 180px;
+  height: 180px;
+}
+.about-ring-target {
+  fill: color-mix(in srgb, var(--accent) 18%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.about-ring-num {
+  fill: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-anchor: middle;
+}
+.about-ring-path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--text) 35%, transparent);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+
+/* Fitts 위젯 (S6 §1) — 자체 구현 SVG, 라이브러리 0. */
+.fitts-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  max-width: 420px;
+}
+.fitts-widget-svg {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 300 / 160;
+  background: var(--bg-layer);
+  border-radius: 8px;
+  touch-action: none;
+}
+.fitts-widget-origin {
+  fill: var(--text-muted);
+}
+.fitts-widget-connector {
+  stroke: color-mix(in srgb, var(--text) 30%, transparent);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.fitts-widget-target {
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
+  stroke: var(--accent);
+  stroke-width: 2;
+  cursor: grab;
+  transition:
+    cx var(--motion-fast) ease,
+    r var(--motion-fast) ease;
+}
+.fitts-widget[data-reduced-motion] .fitts-widget-target {
+  transition: none;
+}
+.fitts-widget-resize {
+  fill: var(--accent);
+  pointer-events: none;
+}
+.fitts-widget-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fitts-widget-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fitts-widget-range {
+  width: 100%;
+}
+.fitts-widget-formula,
+.fitts-widget-readout {
+  margin: 0;
+}
+
 @media (max-width: 480px) {
   .setup-cards {
     grid-template-columns: 1fr;

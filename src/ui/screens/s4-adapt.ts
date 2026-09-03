@@ -7,7 +7,14 @@ import { getProfile, exportProfileJSON, loadCalibration } from "../../storage/pr
 import { createTopBar } from "../components/top-bar";
 import { createDisclosure } from "../components/disclosure";
 import { MorphSlider } from "../components/morph-slider";
-import { SampleUI, BASE_HIT_SIZE_PX, BASE_GAP_PX, BASE_PAD_PX } from "../components/sample-ui";
+import {
+  SampleUI,
+  SAMPLE_KINDS,
+  BASE_HIT_SIZE_PX,
+  BASE_GAP_PX,
+  BASE_PAD_PX,
+  type SampleKind,
+} from "../components/sample-ui";
 import {
   buildMorphAxis,
   initialMorphT,
@@ -71,14 +78,54 @@ export function renderAdapt(ctx: MountContext): void {
     wrap.append(el("p", { class: "adapt-me-disabled small", role: "status" }, t("adapt.meDisabledNote")));
   }
 
-  // --- 샘플 키패드 + 슬라이더 ---
+  // --- 샘플 목업(탭 3종) + 슬라이더 ---
   const stage = el("div", { class: "adapt-stage" });
   wrap.append(stage);
 
+  const sampleCol = el("div", { class: "adapt-sample-col" });
+  stage.append(sampleCol);
+
+  // 샘플 탭: [키패드][로그인 폼][미디어 툴바] (screen-design S4).
+  const tablist = el("div", { class: "adapt-sample-tabs", role: "tablist", "aria-label": t("adapt.sampleTabsLabel") });
+  const tabButtons = new Map<SampleKind, HTMLButtonElement>();
   const sampleHost = el("div", { class: "adapt-sample-host" });
-  stage.append(sampleHost);
-  const sample = new SampleUI({ host: sampleHost, reducedMotion: reduced, initialMode: "adapted" });
+
+  let currentKind: SampleKind = "keypad";
+  let lastSizing: SizingResult | null = null;
+  let sample = new SampleUI({ host: sampleHost, reducedMotion: reduced, initialMode: "adapted", kind: currentKind });
   ctx.addCleanup(() => sample.destroy());
+
+  const syncTabs = (): void => {
+    for (const [kind, btn] of tabButtons) {
+      btn.setAttribute("aria-selected", String(kind === currentKind));
+      btn.tabIndex = kind === currentKind ? 0 : -1;
+    }
+  };
+
+  const switchKind = (kind: SampleKind): void => {
+    if (kind === currentKind) return;
+    const mode = sample.getMode();
+    sample.destroy();
+    currentKind = kind;
+    sample = new SampleUI({ host: sampleHost, reducedMotion: reduced, initialMode: mode, kind });
+    sample.applySizing(lastSizing);
+    syncTabs();
+    syncFelt();
+  };
+
+  for (const kind of SAMPLE_KINDS) {
+    const btn = el(
+      "button",
+      { type: "button", class: "adapt-sample-tab", role: "tab", "data-kind": kind },
+      t(`adapt.sampleTab.${kind}` as Parameters<typeof t>[0]),
+    ) as HTMLButtonElement;
+    btn.addEventListener("click", () => switchKind(kind));
+    tabButtons.set(kind, btn);
+    tablist.append(btn);
+  }
+
+  sampleCol.append(tablist, sampleHost);
+  syncTabs();
 
   const controls = el("div", { class: "adapt-controls" });
   stage.append(controls);
@@ -100,6 +147,11 @@ export function renderAdapt(ctx: MountContext): void {
     el(
       "p",
       { class: "small" },
+      el("a", { href: "#/about#adapt-model", class: "about-deep-link" }, t("adapt.whyAboutLink")),
+    ),
+    el(
+      "p",
+      { class: "small" },
       el(
         "a",
         { href: ADAPT_MODEL_DOC_URL, target: "_blank", rel: "noopener noreferrer" },
@@ -113,10 +165,11 @@ export function renderAdapt(ctx: MountContext): void {
   const felt = el("div", { class: "adapt-felt", role: "group", "aria-label": t("adapt.feltLegend") });
   const feltBase = el("button", { type: "button", class: "adapt-felt-btn", "aria-pressed": "false" }, t("adapt.feltBase"));
   const feltAdapted = el("button", { type: "button", class: "adapt-felt-btn", "aria-pressed": "true" }, t("adapt.feltAdapted"));
-  const syncFelt = (): void => {
+  // 함수 선언(호이스팅) — 위쪽 `switchKind` 가 탭 전환 후 이걸 부른다.
+  function syncFelt(): void {
     feltBase.setAttribute("aria-pressed", String(sample.getMode() === "base"));
     feltAdapted.setAttribute("aria-pressed", String(sample.getMode() === "adapted"));
-  };
+  }
   feltBase.addEventListener("click", () => {
     sample.setMode("base");
     syncFelt();
@@ -168,6 +221,7 @@ export function renderAdapt(ctx: MountContext): void {
       { a: mp.a, b: mp.b, we: mp.we, acPx: KEYPAD_TYPICAL_AMPLITUDE_PX, viewportMinSide: viewportMinSide() },
       calPxPerMm,
     );
+    lastSizing = s;
     sample.applySizing(s);
     renderReadout(s);
     if (s) {

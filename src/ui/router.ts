@@ -25,9 +25,19 @@ export interface Router {
   current(): string;
 }
 
+/**
+ * 라우팅에 쓰는 경로만 뽑는다. 해시 안의 두 번째 `#` 뒤(`#/about#adapt-model`)는
+ * 화면 내 앵커이므로 매칭에서 제외한다 — S6 딥링크가 이 형태를 쓴다.
+ */
 function normalize(hash: string): string {
-  const raw = hash.replace(/^#/, "") || "/";
+  const raw = (hash.replace(/^#/, "").split("#")[0] || "/");
   return raw.startsWith("/") ? raw : `/${raw}`;
+}
+
+/** 현재 해시의 화면 내 앵커(`#/about#adapt-model` → `adapt-model`). 없으면 "". */
+export function routeAnchor(): string {
+  if (typeof window === "undefined") return "";
+  return window.location.hash.replace(/^#/, "").split("#").slice(1).join("#");
 }
 
 export function createRouter(fallback: RouteHandler): Router {

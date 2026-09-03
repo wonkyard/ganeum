@@ -2,6 +2,55 @@
 
 가늠(Ganeum) 변경 이력. 날짜는 작업 완료 기준.
 
+## [Unreleased] — 5-6-a: 교육 페이지(S6) + 적응 샘플 UI 2개
+
+작업 브랜치 `w56a-education-samples`. 회사 브리프 `IDEA-20260901-1455/brief-5-6-a.md`.
+하드 MVP(3B-b) 위에 심사위원용 교육 페이지와 적응 데모 샘플 2개를 얹는 순수 추가형
+라운드 — 측정/저장/적응 core 로직은 미변경.
+
+### S6 교육 페이지 `src/ui/screens/s6-about.ts` + `#/about`
+
+- 스크롤 문서 7섹션(Fitts의 법칙 / ISO 9241-411 태핑 과제 / 왜 '평균'은 실패하나 +
+  적응 모델 근거 / 화면 보정 / AI·서버 없이 어떻게 / 한계 / 인용). 본문 720px, `aria`
+  랜드마크 + 목차 `nav`, 각 섹션 제목 포커스 가능.
+- `src/ui/components/fitts-widget.ts` — 자체 구현 SVG 인터랙티브 위젯(라이브러리 0,
+  옵션객체 + `destroy()`). 타깃 드래그(수평=거리 A, 수직=크기 W) + **키보드 대체 경로**
+  (슬라이더 2개 + 타깃 `role="slider"` 화살표키). `MT = a + b·log2(A/W+1)` 예측값
+  실시간 갱신. `predictFitts()` 는 `src/core/fitts.ts` 재사용, 순수 함수로 분리(테스트).
+  reduced-motion 이면 타깃 트랜지션만 끄고 값 갱신은 유지.
+- 섹션 2 축소 삽화 — 원형 8타깃 + criss-cross 진행 순서(정적 SVG).
+- `src/ui/router.ts` — 해시 안의 두 번째 `#`(`#/about#adapt-model`)를 화면 내 앵커로
+  분리. `routeAnchor()` 추가. S3 "이게 무슨 뜻이죠?" / S4 "왜?" 해설에서 관련 S6
+  섹션으로 딥링크 → 해당 섹션으로 스크롤 + 제목 포커스.
+- S0 "가늠이란?" 링크 활성화(스텁 제거) → `#/about`.
+- `src/adapt/citations.ts` — MacKenzie 1992 · ISO 9241-411 · WCAG 2.5.5/2.5.8 인용
+  추가(add-only, 번역 아님). 프리셋은 이 3건을 참조하지 않는다.
+
+### 적응 샘플 UI 2개 `src/ui/components/sample-ui.ts`
+
+- `kind: "keypad" | "login" | "toolbar"` 분기, 공통 폰 프레임·CSS 변수 구동 재사용.
+  - **로그인 폼**: 이메일/비번 입력 + [로그인] + "비밀번호 찾기" 링크. 필드 높이·버튼·
+    링크 히트 영역이 `--hit-size`/`--gap` 를 따른다.
+  - **미디어 툴바**: 아이콘 버튼 6개(이전/재생·일시정지/다음/볼륨/음소거/전체화면).
+    크기·간격이 `--hit-size`/`--gap` 를 따른다. 재생 버튼은 실제 토글.
+- 같은 250ms 트랜지션, reduced-motion 즉시. 기존 키패드 API(`applySizing`/`setMode`/
+  `getMode`/`destroy`) 그대로 + `getKind()` 추가.
+- S4 에 `[키패드][로그인 폼][미디어 툴바]` 탭(`role="tab"`). 전환 시 현재 모드·sizing
+  유지. "원래대로↔맞춤" 토글은 선택된 샘플에 적용.
+
+### i18n
+
+- S6·샘플 새 문자열 전부 `src/i18n` 키(`about.*`, `adapt.sampleTab.*`, `adapt.login*`,
+  `adapt.toolbar*`, `result.explainMore`). `en` 키 파리티 유지(값은 ko 폴백).
+
+### 테스트
+
+- jsdom: `fitts-widget.test.ts`(예측 계산 손검산 + 슬라이더/화살표키 갱신 + 클램프),
+  `sample-ui.test.ts` 확장(로그인·툴바 렌더 + 3종 CSS 변수 반영).
+- Playwright: `tests/e2e/about.spec.ts`(폰 — `#/about` 7섹션 + 위젯 슬라이더 예측값
+  변화 + S0 링크 + 딥링크 포커스). `adapt.spec.ts` 에 S4 샘플 탭 전환 검증 추가.
+  기존 4개 그대로 초록.
+
 ## [Unreleased] — 3B-b: 적응 화면(S4) + S3 비교 패널 + 배선
 
 작업 브랜치 `w3b-b-adapt-ui`. 회사 브리프 `IDEA-20260901-1455/brief-3B-b.md`.

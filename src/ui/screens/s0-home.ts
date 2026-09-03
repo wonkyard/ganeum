@@ -31,8 +31,7 @@ export function renderHome(ctx: MountContext): void {
   wrap.append(start);
 
   const links = el("nav", { class: "home-links" });
-  const whatIs = el("a", { href: "#/", class: "home-link", "aria-disabled": "true" }, t("home.whatIs"));
-  whatIs.addEventListener("click", (e) => e.preventDefault()); // S6 는 주 5–6
+  const whatIs = el("a", { href: "#/about", class: "home-link" }, t("home.whatIs"));
   links.append(whatIs);
 
   if (profiles.length > 0) {
