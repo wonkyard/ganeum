@@ -17,6 +17,19 @@ export interface FittsChartPoint {
   mt: number;
 }
 
+/**
+ * 겹쳐 그릴 참고 회귀선 (S3 피험자 내 비교 패널 — brief-3B-b §3).
+ * 사용자 본인 선은 `id: "me"` 로 내장 회귀선을 재사용한다.
+ */
+export interface FittsChartOverlay {
+  id: string;
+  /** `MT = a + b·ID`, a/b 초 단위. */
+  a: number;
+  b: number;
+  /** 처음부터 보일지. 기본 false. */
+  visible?: boolean;
+}
+
 export interface FittsChartOptions {
   points: FittsChartPoint[];
   /** `MT = a + b·ID` 최소제곱 적합. a, b 는 초 / 초·bit⁻¹. */
@@ -25,6 +38,8 @@ export interface FittsChartOptions {
   reducedMotion?: boolean;
   /** 미니 카드용 축약 모드 (라벨·캡션 생략). */
   compact?: boolean;
+  /** 참고 회귀선 오버레이 (점선). 토글은 `setOverlay(id, visible)`. */
+  overlays?: FittsChartOverlay[];
 }
 
 const VB_W = 360;
@@ -36,6 +51,8 @@ const LINE_DRAW_MS = 800;
 export class FittsChart {
   readonly element: HTMLElement;
   private timers: number[] = [];
+  /** id → 회귀선 path (내장 "me" + 오버레이). `setOverlay` 가 토글한다. */
+  private readonly lines = new Map<string, SVGElement>();
 
   constructor(opts: FittsChartOptions) {
     const reduced = opts.reducedMotion ?? false;
@@ -123,7 +140,22 @@ export class FittsChart {
         }, POINT_FLY_MS),
       );
     }
+    line.setAttribute("data-overlay-id", "me");
+    this.lines.set("me", line);
     svg.append(line);
+
+    // --- 참고 회귀선 오버레이 (점선, 기본 숨김) ---
+    for (const ov of opts.overlays ?? []) {
+      const oy0 = (ov.a + ov.b * 0) * 1000;
+      const oy1 = (ov.a + ov.b * xMax) * 1000;
+      const path = svgEl("path", {
+        d: `M ${px(0)} ${py(clamp(oy0, 0, yMax))} L ${px(xMax)} ${py(clamp(oy1, 0, yMax))}`,
+        class: ov.visible ? "fitts-overlay" : "fitts-overlay is-off",
+        "data-overlay-id": ov.id,
+      });
+      this.lines.set(ov.id, path);
+      svg.append(path);
+    }
 
     // --- 산점도 ---
     opts.points.forEach((p, i) => {
@@ -165,6 +197,12 @@ export class FittsChart {
     }
 
     this.element = el("figure", { class: "fitts-chart" }, ...parts);
+  }
+
+  /** 회귀선(내장 "me" 또는 오버레이 id)의 표시 여부를 토글한다. */
+  setOverlay(id: string, visible: boolean): void {
+    const line = this.lines.get(id);
+    if (line) line.classList.toggle("is-off", !visible);
   }
 
   destroy(): void {

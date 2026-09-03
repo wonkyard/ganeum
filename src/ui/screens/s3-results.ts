@@ -9,6 +9,7 @@ import { FittsChart } from "../../render/fitts-chart";
 import { CountUpNumber } from "../components/count-up-number";
 import { createStatTile } from "../components/stat-tile";
 import { createDisclosure } from "../components/disclosure";
+import { createWithinSubjectPanel, presetOverlays } from "../components/within-subject-panel";
 import { explainResult } from "../../ai/rules";
 import type { MountContext } from "../screen";
 
@@ -76,14 +77,16 @@ export function renderResults(ctx: MountContext): void {
   wrap.append(heading);
 
   // --- 차트 ---
+  let chart: FittsChart | null = null;
   if (d.hasChart) {
-    const chart = new FittsChart({
+    chart = new FittsChart({
       points: d.points,
       fit: d.fit,
       animated: !reduced,
       reducedMotion: reduced,
+      overlays: presetOverlays(),
     });
-    ctx.addCleanup(() => chart.destroy());
+    ctx.addCleanup(() => chart?.destroy());
     wrap.append(chart.element);
   } else {
     wrap.append(
@@ -139,25 +142,23 @@ export function renderResults(ctx: MountContext): void {
   );
   wrap.append(createDisclosure({ summary: t("result.explainToggle"), content: explainBody }));
 
-  // --- WithinSubjectPanel 예약 슬롯 (3B) ---
-  wrap.append(
-    el(
-      "div",
-      { class: "reserved-slot small muted", "data-reserved": "within-subject-panel" },
-      t("result.comparisonReserved"),
-    ),
-  );
+  // --- 피험자 내 비교 패널 (brief-3B-b §3) ---
+  if (chart) {
+    wrap.append(
+      createWithinSubjectPanel({
+        chart,
+        imprecise: d.weSource === "nominal-fallback" || !d.confident,
+      }),
+    );
+  }
 
   // --- 고지 ---
   wrap.append(el("p", { class: "small muted disclaimer" }, t("result.disclaimer")));
 
   // --- 하단 액션 ---
   const actions = el("div", { class: "results-actions" });
-  const adapt = el(
-    "button",
-    { type: "button", class: "btn-ghost", disabled: true },
-    `${t("result.adaptSoon")} · ${t("setup.comingSoon")}`,
-  );
+  const adapt = el("button", { type: "button", class: "btn-ghost" }, t("result.adaptSoon"));
+  adapt.addEventListener("click", () => ctx.go(`/adapt/${profile.id}`));
   const saveCard = el("button", { type: "button", class: "btn-primary" }, t("result.saveCard"));
   saveCard.addEventListener("click", () => ctx.go(`/card/${profile.id}`));
   const again = el("button", { type: "button", class: "btn-ghost" }, t("result.remeasure"));
