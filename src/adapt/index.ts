@@ -3,3 +3,4 @@ export * from "./citations";
 export * from "./presets";
 export * from "./sizing";
 export * from "./inv-norm";
+export * from "./morph";

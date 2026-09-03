@@ -1,5 +1,60 @@
 # ganeum — backlog
 
+## 2026-09-03 — 3B-b: 적응 화면(S4) + S3 비교 패널 + 배선 · 작업 브랜치 `w3b-b-adapt-ui`
+
+Why: 회사 브리프 `reports/IDEA-20260901-1455/brief-3B-b.md`. 3B-a 가 깐 모델 core
+(`src/adapt/`) 위에 마침내 사용자 대면 적응 UI 를 얹는다. 이 라운드가 끝나면 데모
+3막(측정→결과→**적응**)이 완성된다 — 슬라이더를 "손떨림"으로 당기면 키패드가 커지고
+벌어진다. 이게 앱의 진짜 목적. 3B-a 처럼 UI 표면 최소로 유지 (S4 한 화면 + S3 패널 하나).
+
+Scope (이번 브랜치 — 딱 네 항목):
+
+1. `src/adapt/morph.ts` — 프리셋 보간 + "나" 스냅 (순수 함수 + 골든 테스트):
+   - 축 = We(CSS px) 오름차순. 프리셋 `endpointSdMm` → We 환산 (보정값 있으면 그걸로,
+     없으면 `DEFAULT_PX_PER_MM`). 축상 순서 young < elderly < tremor.
+   - "나" = 이번 세션 `SessionOk.we` (측정값). 축상 위치 = 프리셋 사이 선형 보간, 밖이면 클램프.
+     `weSource="nominal-fallback"` 이면 "나" 비활성 + 안내(퇴화 경로).
+   - `morphAt(t)` → `{ a, b, we, label, estimated }`. 인접 스톱 사이 선형 보간.
+     `estimated` 는 tremor 쪽 세그먼트에 걸치면 true.
+2. S4 적응 화면 `src/ui/screens/s4-adapt.ts` + `#/adapt/:id` 라우트 (전체 폭):
+   - `MorphSlider` (4지점 We 순서, 드래그/화살표키, "나" 스냅 마커, 옵션객체 + `destroy()`).
+   - `SampleUI` — 키패드 1개만. 실제 눌리는 목업. CSS 변수(`--hit-size`/`--gap`/`--pad`)만
+     `sizing()` 결과에서 설정, 250ms 트랜지션, reduced-motion 이면 즉시.
+   - 변경 수치 실시간: 보정됨이면 px(+mm), 미보정이면 상대 배율 + "미보정" 배지.
+   - `Disclosure`(3A) 재사용 "▸ 왜 이렇게 바뀌나요?": `sizing()` 공식 한 줄 + 2D 정직성
+     수치(`wStar2dNote` 기반) + `docs/adapt-model.md` 링크.
+   - "원래대로 ↔ 나에게 맞춤" 토글 (체감 비교, 숫자 주장 없음). ABMiniTest 안 만듦.
+   - 하단: 프로파일 JSON 저장(3A 재사용) · 결과 카드(S5).
+3. S3 `WithinSubjectPanel` — 3A 예약 슬롯을 채움:
+   - `FittsChart` 위 프리셋 회귀선 오버레이 (`[나][20대][손떨림][고령]` 토글 칩).
+     프리셋 선 = 회색 점선 + "참고" 라벨. 출처 링크 상시.
+   - 인구 백분위 없음, "상위 N%" 없음. 좌우손·시점 추이는 슬롯 밖(주 5–6).
+   - `weSource="nominal-fallback"` 또는 `!confident` 면 "비교가 부정확할 수 있어요" 표기.
+4. 배선:
+   - S3 "이 결과로 화면 맞춰보기 →" 버튼 활성화 (3A 비활성) → `#/adapt/:id`.
+   - `s2-measure` 가 저장하는 `Profile.calibrated` / `viewport.pxPerMm` 를 실제
+     `ganeum.calibration` 값으로 채운다 (3B-a 잔여, 지금 항상 false/null).
+
+Out of scope (주 5–6 이후): `ABMiniTest`, SampleUI 추가 목업(로그인 폼/미디어 툴바),
+S3 좌우손 비교·시점 추이, S6 교육 페이지, AI 해설, 정밀 측정 모드. 조건 기하·
+`src/core/*` 측정 로직 변경 금지. `src/adapt/{sizing,presets,inv-norm}.ts` API 유지(추가만).
+
+Done when:
+- 측정 완주 → S3 "화면 맞춰보기 →" → S4: 슬라이더를 "손떨림"으로 → 키패드 버튼이
+  커지고 간격이 벌어짐(250ms). "나" 지점에서 측정값 반영. "원래대로↔맞춤" 토글 동작.
+  "왜?" 펼치면 근거 + 2D 수치.
+- S3 비교 패널: 프리셋 회귀선 오버레이 토글, 출처 링크 상시.
+- `src/adapt/morph.ts` 순수 함수 + 골든 테스트 초록.
+- `npm run typecheck` / `test` / `build` 초록. core 커버리지 게이트 유지.
+- Playwright: 기존 3개 + 신규 1개(측정→S3→S4, 슬라이더 이동 시 `--hit-size` 실제 변경 +
+  "나" 마커 존재, 폰 뷰포트).
+- 사용자 대면 리터럴 0개, i18n `ko`+`en` 키 파리티 초록.
+- `weSource="nominal-fallback"` 세션에서 S4 "나" 비활성 + 안내.
+
+Priority: now
+
+→ `project-eng` 가 이어받는다.
+
 ## 2026-09-03 — 3B-a: 화면 보정(SC) + 적응 모델 core · 작업 브랜치 `w3b-a-calibration-adapt-core`
 
 Why: 회사 브리프 `reports/IDEA-20260901-1455/brief-3B-a.md`. 로드맵 주 3–4 하드 MVP

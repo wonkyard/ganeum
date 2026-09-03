@@ -8,7 +8,7 @@ import { CURRENT_SCHEMA, type Condition, type PointerKind, type Profile, type Ta
 import { TargetField, type RawTap } from "../../render/target-field";
 import { AppModal } from "../components/app-modal";
 import { sessionStore } from "../session-store";
-import { saveProfile } from "../../storage/profiles";
+import { saveProfile, loadCalibration } from "../../storage/profiles";
 import { APP_VERSION } from "../../version";
 import type { MountContext } from "../screen";
 
@@ -119,6 +119,10 @@ export function renderMeasure(ctx: MountContext): MeasureHandle {
       return;
     }
     const id = newProfileId();
+    // 화면 물리 보정이 돼 있으면 프로파일에 기록한다 (brief-3B-b §4, 3B-a 잔여).
+    // 조건 기하는 여전히 뷰포트 CSS px 에서만 파생한다 — 보정은 표시/보고 전용
+    // (brief-3A §8 C3).
+    const calibration = loadCalibration();
     const profile: Profile = {
       schema: CURRENT_SCHEMA,
       id,
@@ -128,12 +132,12 @@ export function renderMeasure(ctx: MountContext): MeasureHandle {
       pointerType,
       hand,
       mode,
-      calibrated: false,
+      calibrated: calibration != null,
       viewport: {
         w: typeof window !== "undefined" ? window.innerWidth : 0,
         h: typeof window !== "undefined" ? window.innerHeight : 0,
         dpr: (typeof window !== "undefined" && window.devicePixelRatio) || 1,
-        pxPerMm: null,
+        pxPerMm: calibration?.pxPerMm ?? null,
       },
       conditions: collected,
       fitts: analysis.fitts,

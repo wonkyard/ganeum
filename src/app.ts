@@ -2,7 +2,7 @@
  * 앱 셸 — 라우터 배선 + 최상위 에러 경계만 (brief-3A §5, P0-5).
  * 화면 자체는 `src/ui/screens/*` 에 있고 `app.ts` 는 얇게 유지한다.
  *
- * 라우트: `#/`, `#/calibrate`, `#/setup`, `#/measure`, `#/results/:id`, `#/card/:id`.
+ * 라우트: `#/`, `#/calibrate`, `#/setup`, `#/measure`, `#/results/:id`, `#/adapt/:id`, `#/card/:id`.
  * `measuring` 중 새로고침/이탈 → 진행 버림, `#/` 로 (screen-design 상태 흐름).
  */
 import { createRouter } from "./ui/router";
@@ -16,6 +16,7 @@ import { renderCalibrate } from "./ui/screens/sc-calibrate";
 import { renderSetup } from "./ui/screens/s1-setup";
 import { renderMeasure, type MeasureHandle } from "./ui/screens/s2-measure";
 import { renderResults } from "./ui/screens/s3-results";
+import { renderAdapt } from "./ui/screens/s4-adapt";
 import { renderCard } from "./ui/screens/s5-card";
 
 export interface AppHandle {
@@ -91,6 +92,7 @@ export function createApp(root: HTMLElement): AppHandle {
       }, {}),
     )
     .add("/results/:id", (m) => mount(renderResults, m.params))
+    .add("/adapt/:id", (m) => mount(renderAdapt, m.params))
     .add("/card/:id", (m) => mount(renderCard, m.params))
     .start();
 

@@ -2,6 +2,64 @@
 
 가늠(Ganeum) 변경 이력. 날짜는 작업 완료 기준.
 
+## [Unreleased] — 3B-b: 적응 화면(S4) + S3 비교 패널 + 배선
+
+작업 브랜치 `w3b-b-adapt-ui`. 회사 브리프 `IDEA-20260901-1455/brief-3B-b.md`.
+3B-a 가 깐 모델 core 위에 사용자 대면 적응 UI 를 얹는다 — 데모 3막(측정→결과→적응) 완성.
+UI 표면은 S4 한 화면 + S3 패널 하나 + 배선. `src/adapt/{sizing,presets,inv-norm}.ts` API 유지.
+
+### 프리셋 보간 core `src/adapt/morph.ts` (UI 없음, 순수 함수 + 골든 테스트)
+
+- 슬라이더 축 = 유효 너비 We(CSS px), 오름차순. 프리셋 `endpointSdMm` → `We = 4.133·SD`
+  환산(px 는 보정값 있으면 그걸로, 없으면 `DEFAULT_PX_PER_MM`). 축상 순서 young < elderly < tremor.
+- `buildMorphAxis({ me, calibrationPxPerMm })` — 프리셋 3종 + 측정된 "나" 를 한 축에.
+  "나" 위치 = 브래킷 프리셋 사이 선형 보간, 밖이면 클램프. 축 끝점은 항상 프리셋(늘리지 않음).
+- `weSource="nominal-fallback"` 또는 `we ≤ 0` → "나" 비활성(`meDisabled`), 프리셋만으로 슬라이더 동작.
+- `morphAt(axis, t)` → `{ a, b, we, label, estimated }`. 인접 스톱 선형 보간, 폭 0 세그먼트 건너뜀.
+  `estimated` 는 tremor 쪽 세그먼트에 걸치면 true. `morphAt(0/1)` 은 정확히 min/max 프리셋 값.
+- `src/adapt/citations.ts` — `CITATION_URLS`(DOI/링크) + `ADAPT_MODEL_DOC_URL` 추가(번역 아님).
+
+### S4 적응 화면 `src/ui/screens/s4-adapt.ts` + `#/adapt/:id`
+
+- `src/ui/components/morph-slider.ts` — `MorphSlider`(옵션객체 + `destroy()`). 4지점 눈금을
+  축상 We 위치대로 배치, 드래그/화살표키(네이티브 range), "나" 스냅 마커, `aria-valuetext` 라벨.
+- `src/ui/components/sample-ui.ts` — `SampleUI`(키패드 1개만). 실제 눌리는 숫자 목업.
+  적응은 **CSS 변수만** 바꿔 일어남: `--hit-size`/`--gap`/`--pad` 를 `sizing()` 결과에서 설정,
+  250ms 트랜지션, reduced-motion 이면 `--adapt-transition: 0ms`.
+- 변경 수치 실시간: 보정됨이면 px + mm, 미보정이면 상대 배율(×1.0 → ×N) + "미보정" 배지.
+  `floored`/`clamped` 안내 문구.
+- `Disclosure`(3A) 재사용 "▸ 왜 이렇게 바뀌나요?": `sizing()` 공식 한 줄 + 2D 정직성 수치
+  (`exp(−(W*/2)²/2σ²)` → "실제 2차원 버튼에선 약 N% 오류") + `docs/adapt-model.md` 링크.
+- "원래대로 ↔ 나에게 맞춤" 토글 (체감 비교, 숫자 주장 없음). `ABMiniTest` 는 안 만듦(범위 밖).
+- 하단: 프로파일 JSON 저장(3A `exportProfileJSON` 재사용) · 결과 카드(S5).
+
+### S3 피험자 내 비교 패널 `src/ui/components/within-subject-panel.ts`
+
+- 3A 예약 슬롯을 채움. `FittsChart` 에 프리셋 회귀선 오버레이(점선) 추가 —
+  `FittsChartOptions.overlays` + `chart.setOverlay(id, visible)` (add-only, 자가 드로잉).
+- `[나] [20대] [손떨림] [고령]` 토글 칩. "나"(내장 회귀선) 기본 켜짐, 프리셋 기본 꺼짐.
+- 프리셋 회귀선 = 회색 점선. "참고" 라벨 + 출처 링크 상시(`CITATIONS`/`CITATION_URLS`).
+- **인구 백분위 없음, "상위 N%" 없음**(spec §5). 좌우손·시점 추이는 슬롯 밖(주 5–6).
+- `weSource="nominal-fallback"` 또는 `!confident` 면 "비교가 부정확할 수 있어요" 표기.
+
+### 배선
+
+- S3 "이 결과로 화면 맞춰보기 →" 버튼 활성화(3A 비활성 "준비 중") → `#/adapt/:id`.
+- `s2-measure` 가 저장하는 `Profile.calibrated` / `viewport.pxPerMm` 를 실제
+  `ganeum.calibration` 값으로 채운다(3B-a 잔여). 조건 기하는 여전히 뷰포트 CSS px 전용.
+
+### i18n
+
+- S4·비교 패널 새 문자열 전부 `src/i18n` 키(`adapt.*`, `result.compare*`). `en` 키 파리티 유지.
+- 미사용 키 `result.comparisonReserved` 제거.
+
+### 테스트
+
+- 골든: `src/adapt/morph.test.ts` — 끝점=프리셋 값, 중간 보간, "나" 스냅/클램프, 퇴화 경로.
+- jsdom 컴포넌트: `MorphSlider` / `SampleUI` / `WithinSubjectPanel`.
+- Playwright: 기존 3개 + `tests/e2e/adapt.spec.ts`(폰) — 측정→S3 오버레이 토글→S4,
+  슬라이더 이동 시 `--hit-size` 실제 증가 + "나" 마커 존재 + "원래대로" 토글.
+
 ## [Unreleased] — 3B-a: 화면 보정(SC) + 적응 모델 core
 
 작업 브랜치 `w3b-a-calibration-adapt-core`. 회사 브리프 `IDEA-20260901-1455/brief-3B-a.md`.
