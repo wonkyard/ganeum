@@ -4,11 +4,15 @@ import {
   DEFAULT_PREFS,
   MAX_PROFILES,
   __resetStorageForTests,
+  clearCalibration,
   deleteAllData,
   exportProfileJSON,
+  isCalibrationStale,
   isStorageDegraded,
+  loadCalibration,
   loadPrefs,
   loadProfiles,
+  saveCalibration,
   saveProfile,
   savePrefs,
 } from "./profiles";
@@ -169,6 +173,54 @@ describe("prefs", () => {
     localStorage.setItem("ganeum.prefs", JSON.stringify({ theme: "purple", locale: "fr" }));
     expect(loadPrefs().theme).toBe("system");
     expect(loadPrefs().locale).toBe("ko");
+  });
+});
+
+describe("화면 보정 (calibration)", () => {
+  it("저장 후 로드 라운드트립 + ts 자동 기록", () => {
+    const before = Date.now();
+    const r = saveCalibration(3.8, 2);
+    expect(r.ok).toBe(true);
+    const cal = loadCalibration();
+    expect(cal).not.toBeNull();
+    expect(cal?.pxPerMm).toBe(3.8);
+    expect(cal?.dpr).toBe(2);
+    expect(cal?.ts).toBeGreaterThanOrEqual(before);
+  });
+
+  it("보정값이 없으면 null, 손상되면 null", () => {
+    expect(loadCalibration()).toBeNull();
+    localStorage.setItem("ganeum.calibration", "{broken");
+    expect(loadCalibration()).toBeNull();
+    localStorage.setItem("ganeum.calibration", JSON.stringify({ pxPerMm: -1, dpr: 1, ts: 0 }));
+    expect(loadCalibration()).toBeNull();
+  });
+
+  it("clearCalibration 은 보정값만 지운다", () => {
+    saveCalibration(4, 1);
+    savePrefs({ theme: "dark" });
+    clearCalibration();
+    expect(loadCalibration()).toBeNull();
+    expect(loadPrefs().theme).toBe("dark");
+  });
+
+  it("isCalibrationStale — 상대오차 5% 초과면 true (줌 오차는 무시)", () => {
+    expect(isCalibrationStale({ pxPerMm: 4, dpr: 2, ts: 0 }, 2)).toBe(false);
+    expect(isCalibrationStale({ pxPerMm: 4, dpr: 2, ts: 0 }, 2.05)).toBe(false); // 2.5%
+    expect(isCalibrationStale({ pxPerMm: 4, dpr: 2, ts: 0 }, 1)).toBe(true); // 50%
+    expect(isCalibrationStale({ pxPerMm: 4, dpr: 0, ts: 0 }, 2)).toBe(false); // dpr 미상
+  });
+
+  it("deleteAllData 는 보정값도 지운다", () => {
+    saveCalibration(3.8, 1);
+    deleteAllData();
+    expect(loadCalibration()).toBeNull();
+  });
+
+  it("calibrationPrompted 기본 false, patch 로 true 저장", () => {
+    expect(loadPrefs().calibrationPrompted).toBe(false);
+    savePrefs({ calibrationPrompted: true });
+    expect(loadPrefs().calibrationPrompted).toBe(true);
   });
 });
 

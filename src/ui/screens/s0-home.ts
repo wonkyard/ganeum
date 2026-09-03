@@ -2,7 +2,13 @@
 import { el } from "../dom";
 import { t, formatNumber } from "../../i18n";
 import { createTopBar } from "../components/top-bar";
-import { loadProfiles, getLastProfileId, isStorageDegraded } from "../../storage/profiles";
+import {
+  loadProfiles,
+  getLastProfileId,
+  isStorageDegraded,
+  loadCalibration,
+  isCalibrationStale,
+} from "../../storage/profiles";
 import type { MountContext } from "../screen";
 
 export function renderHome(ctx: MountContext): void {
@@ -40,8 +46,8 @@ export function renderHome(ctx: MountContext): void {
   }
   wrap.append(links);
 
-  // 3A: 화면 보정은 항상 "안 됨" (SC 는 3B). 정보만.
-  wrap.append(el("p", { class: "calib-status small muted" }, `◔ ${t("home.calibrationOff")}`));
+  // 화면 보정 상태 줄 (brief-3B-a §3). 클릭 → SC.
+  wrap.append(calibrationStatusLine());
 
   wrap.append(
     el("hr", {}),
@@ -50,4 +56,31 @@ export function renderHome(ctx: MountContext): void {
 
   ctx.host.append(wrap);
   start.focus();
+}
+
+/**
+ * 홈의 보정 상태 줄. 미보정 / 보정됨(px/mm 표시) / dpr 불일치(모니터 변경) 세 상태.
+ * 항상 `#/calibrate` 로 가는 링크다 — [측정 시작] 은 보정과 무관하게 활성.
+ */
+function calibrationStatusLine(): HTMLElement {
+  const cal = loadCalibration();
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+
+  let mark = "◔";
+  let label = t("home.calibrationOff");
+  if (cal && isCalibrationStale(cal, dpr)) {
+    mark = "⚠";
+    label = t("home.calibrationStale");
+  } else if (cal) {
+    mark = "●";
+    label = t("home.calibrationOn", {
+      pxPerMm: formatNumber(cal.pxPerMm, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    });
+  }
+
+  return el(
+    "a",
+    { href: "#/calibrate", class: "home-link calib-status small" },
+    `${mark} ${label}`,
+  );
 }

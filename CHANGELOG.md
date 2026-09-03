@@ -2,6 +2,50 @@
 
 가늠(Ganeum) 변경 이력. 날짜는 작업 완료 기준.
 
+## [Unreleased] — 3B-a: 화면 보정(SC) + 적응 모델 core
+
+작업 브랜치 `w3b-a-calibration-adapt-core`. 회사 브리프 `IDEA-20260901-1455/brief-3B-a.md`.
+UI 표면은 SC 화면 하나. S4 적응 UI·MorphSlider·SampleUI·S3 비교 패널은 3B-b.
+
+### 화면 물리 보정 (SC)
+
+- `src/ui/components/card-calibrator.ts` — `CardCalibrator` (옵션 객체 + `destroy()`).
+  ISO/IEC 7810 ID-1 카드(85.60 × 53.98mm) 고정비 사각형 + 슬라이더(화살표키 미세조정)
+  + 숫자 직접 입력. 실시간 `X.XX px/mm` + 대각 인치 추정
+  (`hypot(w_px, h_px) / (pxPerMm × 25.4)`).
+- `src/ui/screens/sc-calibrate.ts` + `#/calibrate` 라우트 — [이대로 저장] / [보정 없이 계속].
+- `src/storage/profiles.ts` — `ganeum.calibration = { pxPerMm, dpr, ts }` (pxPerMm 은
+  **CSS px per mm**). `loadCalibration` / `saveCalibration` / `clearCalibration` /
+  `isCalibrationStale`(dpr 상대오차 > 0.05 → 모니터 변경 추정). `deleteAllData` 가 함께 지움.
+- `ganeum.prefs.calibrationPrompted` 추가 — 첫 측정 직전(S1) 1회 권유, 스킵해도 재권유 없음.
+- S0 보정 상태 줄을 실제 상태로 배선 (3A 스텁 대체): 미보정 / `● 화면 보정됨 (X.XX px/mm)`
+  / `⚠ 모니터가 바뀐 것 같아요`. 항상 `#/calibrate` 링크.
+
+### 적응 모델 core `src/adapt/` (UI 없음, 순수 함수 + 골든 테스트)
+
+- `inv-norm.ts` — `Φ⁻¹` Acklam 근사 (런타임 의존성 0, 절대오차 ~1e-9). `PHI_INV_098 = 2.05375`.
+- `presets.ts` — young / elderly / tremor 프리셋을 **SI(초)** 로. 손떨림은 `estimated: true`
+  (문헌 공백). `DEFAULT_PX_PER_MM = 3.8`.
+- `citations.ts` — 참고문헌 문자열(번역 안 함, i18n 아님).
+- `sizing.ts` — 닫힌 식 `W*_1d = 4.1075·σ`, 표시용 `W*_2d = 2.537·σ`, 예측 이동시간,
+  간격(`ADJACENCY_GAP_RATIO = 0.35`), 바닥값/상한, `floored`/`clamped` 플래그,
+  퇴화 입력 가드(`we ≤ 0` → `null`). a·b·A_c 는 W\* 산정에 안 들어감(brief-3A §8 정정).
+- `docs/adapt-model.md` — 수식·상수·프리셋 출처·한계 (심사위원용, S6 초안).
+
+### i18n
+
+- SC·S0·S1 새 문자열 전부 `src/i18n` 키 (`calibrate.*`, `home.calibration*`,
+  `setup.calibratePrompt*`, `adapt.preset.*`). `en` 키 파리티 유지.
+
+### 테스트
+
+- 골든: `src/adapt/inv-norm.test.ts`(분위수·꼬리·정의역), `sizing.test.ts`(σ/W\* 손계산,
+  바닥값·상한, gap, 단조성, 퇴화 가드), `presets.test.ts`(값·부호·estimated·citation).
+- `src/storage/profiles.test.ts` — 보정 저장/로드/스테일/삭제.
+- `src/ui/components/card-calibrator.test.ts` — 슬라이더·직접입력·클램프·readout·destroy.
+- Playwright: `tests/e2e/calibrate.spec.ts` — 폰 뷰포트, `#/calibrate` 저장 → S0 반영 +
+  스킵은 저장 안 함 + 새로고침 유지. 기존 flow 2개 그대로 초록.
+
 ## [Unreleased] — 3A: 측정 → 결과 → 카드 (+ 엔진/저장 수정)
 
 작업 브랜치 `w3a-measure-results`. 회사 브리프 `IDEA-20260901-1455/brief-3A.md`.

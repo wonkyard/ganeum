@@ -391,6 +391,61 @@
   justify-content: flex-end;
 }
 
+/* --- SC 화면 보정 --- */
+.calib-status {
+  display: inline-block;
+  margin-top: 4px;
+}
+.calibrate-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--radius-card);
+  padding: 10px 12px;
+}
+.calibrate-prompt-actions {
+  display: flex;
+  gap: 8px;
+}
+.card-calibrator {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch;
+}
+.card-calibrator-card {
+  align-self: center;
+  min-width: 40px;
+  max-width: 100%;
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.card-calibrator-slider {
+  width: 100%;
+}
+.card-calibrator-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+.card-calibrator-number {
+  width: 6rem;
+  padding: 4px 6px;
+}
+.card-calibrator-readout {
+  margin: 0;
+  color: var(--text-muted);
+}
+.calibrate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 @media (max-width: 480px) {
   .setup-cards {
     grid-template-columns: 1fr;
