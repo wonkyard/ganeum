@@ -4,6 +4,7 @@ import { t } from "../../i18n";
 import { createTopBar } from "../components/top-bar";
 import { Countdown } from "../components/countdown";
 import { sessionStore } from "../session-store";
+import { loadCalibration, loadPrefs, savePrefs } from "../../storage/profiles";
 import type { Hand } from "../../core/types";
 import type { MountContext } from "../screen";
 
@@ -11,6 +12,26 @@ export function renderSetup(ctx: MountContext): void {
   const wrap = el("section", { class: "screen screen-setup" });
   wrap.append(createTopBar({ back: "/", go: ctx.go, rerender: ctx.rerender }));
   wrap.append(el("h1", {}, t("setup.title")));
+
+  // 첫 측정 직전 1회 "화면 보정할래요?" 권유 (brief-3B-a §1). 스킵 가능, 재권유 없음.
+  if (!loadPrefs().calibrationPrompted && !loadCalibration()) {
+    const prompt = el("div", { class: "calibrate-prompt small", role: "note" });
+    const yes = el("button", { type: "button", class: "btn-ghost" }, t("setup.calibratePromptYes"));
+    const no = el("button", { type: "button", class: "btn-ghost" }, t("setup.calibratePromptNo"));
+    yes.addEventListener("click", () => {
+      savePrefs({ calibrationPrompted: true });
+      ctx.go("/calibrate");
+    });
+    no.addEventListener("click", () => {
+      savePrefs({ calibrationPrompted: true });
+      prompt.remove();
+    });
+    prompt.append(
+      el("span", {}, t("setup.calibratePrompt")),
+      el("span", { class: "calibrate-prompt-actions" }, yes, no),
+    );
+    wrap.append(prompt);
+  }
 
   // --- 측정 종류 카드 (3A 는 빠른 측정만) ---
   const quickCard = modeCard("quick", t("setup.quickTitle"), t("setup.quickDetail"), false);

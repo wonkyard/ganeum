@@ -15,8 +15,19 @@ export const ko = {
   "home.start": "측정 시작",
   "home.whatIs": "가늠이란?",
   "home.pastResults": "지난 결과 ({count})",
-  "home.calibrationOff": "화면 보정: 안 됨",
+  "home.calibrationOff": "화면 보정: 안 됨 — 보정하기",
+  "home.calibrationOn": "화면 보정됨 ({pxPerMm} px/mm) — 다시",
+  "home.calibrationStale": "모니터가 바뀐 것 같아요 — 재보정",
   "home.footer": "Fitts의 법칙 · ISO 9241-411 · WONKYARD",
+
+  "calibrate.title": "화면 보정",
+  "calibrate.intro":
+    "신용카드나 교통카드를 화면에 대고 아래 상자의 가로 폭을 카드에 맞추세요. 선택 사항이에요.",
+  "calibrate.slider": "카드 폭",
+  "calibrate.manualLabel": "직접 입력 (px/mm)",
+  "calibrate.readout": "지금 화면: 약 {pxPerMm} px/mm · {diagInch}\" 추정",
+  "calibrate.save": "이대로 저장",
+  "calibrate.skip": "보정 없이 계속",
 
   "setup.title": "어떻게 잴까요?",
   "setup.quickTitle": "빠른 측정",
@@ -31,6 +42,9 @@ export const ko = {
   "setup.howtoBody": "나타나는 원을 최대한 빠르고 정확하게 누르세요. 빗나가도 됩니다.",
   "setup.start": "시작",
   "setup.startHint": "스페이스",
+  "setup.calibratePrompt": "화면을 물리 크기에 맞추면 mm 단위 결과를 볼 수 있어요.",
+  "setup.calibratePromptYes": "화면 보정하기",
+  "setup.calibratePromptNo": "그냥 진행",
 
   "countdown.announce": "{n}초 후 시작",
   "countdown.go": "시작!",
@@ -98,6 +112,10 @@ export const ko = {
   "theme.light": "밝게",
   "theme.dark": "어둡게",
   "lang.toggle": "언어",
+
+  "adapt.preset.young": "젊은 성인",
+  "adapt.preset.elderly": "고령 성인",
+  "adapt.preset.tremor": "손떨림 (추정)",
 
   "unit.ms": "ms",
   "unit.bitsPerSecond": "bits/초",

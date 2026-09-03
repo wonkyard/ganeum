@@ -1,7 +1,7 @@
 /**
- * 영속성 계층 (brief-3A Phase 1 · 스펙 §7).
+ * 영속성 계층 (brief-3A Phase 1 · 스펙 §7, brief-3B-a: 화면 보정).
  *
- * `localStorage` 에 프로파일 배열과 사용자 설정을 담는다. 규칙:
+ * `localStorage` 에 프로파일 배열·사용자 설정·화면 보정값을 담는다. 규칙:
  * - 모든 read/write 는 `try/catch`. 실패해도 **세션 메모리로 계속 동작**하고
  *   눈에 보이는 배지를 띄운다(`isStorageDegraded()`).
  * - 쿼터 초과 시: 가장 오래된 프로파일 삭제 후 1회 재시도 → 그래도 실패면 메모리.
@@ -15,6 +15,7 @@ const KEY_PREFIX = "ganeum.";
 const K_PROFILES = "ganeum.profiles";
 const K_LAST = "ganeum.lastProfileId";
 const K_PREFS = "ganeum.prefs";
+const K_CALIBRATION = "ganeum.calibration";
 
 /** 프로파일 배열 상한 (brief-3A §6). 초과 시 가장 오래된 것부터 삭제. */
 export const MAX_PROFILES = 20;
@@ -22,13 +23,18 @@ export const MAX_PROFILES = 20;
 export type ThemeChoice = "system" | "light" | "dark";
 export type LocaleChoice = "ko" | "en";
 
-/** `ganeum.prefs` 의 고정 형태 (brief-3A Phase 1). */
+/** `ganeum.prefs` 의 고정 형태 (brief-3A Phase 1, brief-3B-a). */
 export interface Prefs {
   theme: ThemeChoice;
   locale: LocaleChoice;
   sound: boolean;
   /** OS reduced-motion 설정을 사용자가 덮어썼는지. null = OS 설정 따름. */
   reducedMotionOverride: boolean | null;
+  /**
+   * 첫 측정 직전 "화면 보정할래요?" 권유를 이미 한 번 보여줬는지 (brief-3B-a §1).
+   * true 면 다시 묻지 않는다 — 건너뛰기해도 재권유 없음.
+   */
+  calibrationPrompted: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -36,6 +42,7 @@ export const DEFAULT_PREFS: Prefs = {
   locale: "ko",
   sound: true,
   reducedMotionOverride: null,
+  calibrationPrompted: false,
 };
 
 export interface StorageResult {
@@ -216,6 +223,7 @@ export function loadPrefs(): Prefs {
         obj.reducedMotionOverride === true || obj.reducedMotionOverride === false
           ? obj.reducedMotionOverride
           : null,
+      calibrationPrompted: obj.calibrationPrompted === true,
     };
   } catch {
     return { ...DEFAULT_PREFS };
@@ -226,6 +234,74 @@ export function savePrefs(patch: Partial<Prefs>): Prefs {
   const next: Prefs = { ...loadPrefs(), ...patch };
   setItem(K_PREFS, JSON.stringify(next));
   return next;
+}
+
+// --- 화면 물리 보정 (brief-3B-a §1 · 스펙 §3) --------------------------
+
+/**
+ * 화면 물리 보정 결과. 신용/교통카드(ISO/IEC 7810 ID-1)로 폭을 맞춰 산출한다.
+ *
+ * `pxPerMm` 은 **CSS px per mm** 다 (device px 아님). 조건 기하는 여전히 뷰포트
+ * CSS px 에서만 파생하고, 보정은 표시/보고(px ↔ mm)에만 영향을 준다 (brief-3A §8 C3).
+ */
+export interface Calibration {
+  /** CSS px per mm. */
+  pxPerMm: number;
+  /** 보정 당시 `window.devicePixelRatio` — 모니터 변경(재보정 권유) 감지용. */
+  dpr: number;
+  /** 저장 시각 (epoch ms). */
+  ts: number;
+}
+
+/** `devicePixelRatio` 가 보정 당시와 이 비율(상대오차)보다 벌어지면 재보정을 권한다. */
+export const DPR_MISMATCH_TOLERANCE = 0.05;
+
+/** 저장된 보정값. 없거나 형태가 깨졌으면 null. */
+export function loadCalibration(): Calibration | null {
+  const raw = getItem(K_CALIBRATION);
+  if (!raw) return null;
+  try {
+    const o = JSON.parse(raw) as Partial<Calibration>;
+    if (
+      typeof o.pxPerMm === "number" &&
+      Number.isFinite(o.pxPerMm) &&
+      o.pxPerMm > 0 &&
+      typeof o.dpr === "number" &&
+      Number.isFinite(o.dpr) &&
+      typeof o.ts === "number"
+    ) {
+      return { pxPerMm: o.pxPerMm, dpr: o.dpr, ts: o.ts };
+    }
+  } catch {
+    /* 손상 — 미보정으로 취급 */
+  }
+  return null;
+}
+
+/** 보정값 저장. `ts` 는 여기서 찍는다. 실패해도 메모리 폴백 + degraded 배지. */
+export function saveCalibration(pxPerMm: number, dpr: number): StorageResult {
+  const payload: Calibration = { pxPerMm, dpr, ts: Date.now() };
+  const ok = setItem(K_CALIBRATION, JSON.stringify(payload));
+  return { ok, degraded };
+}
+
+/** 보정값만 제거 (프로파일·설정은 유지). */
+export function clearCalibration(): void {
+  memory.delete(K_CALIBRATION);
+  try {
+    ls()?.removeItem(K_CALIBRATION);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * `devicePixelRatio` 가 보정 당시와 유의미하게 다른가 (모니터 변경 추정).
+ * 정확 일치 비교는 브라우저 줌마다 뜨므로 상대오차 허용치를 둔다.
+ */
+export function isCalibrationStale(cal: Calibration, currentDpr: number): boolean {
+  if (!(cal.dpr > 0) || !(currentDpr > 0)) return false;
+  return Math.abs(currentDpr - cal.dpr) / cal.dpr > DPR_MISMATCH_TOLERANCE;
 }
 
 // --- 내보내기 ----------------------------------------------------------

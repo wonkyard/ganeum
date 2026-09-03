@@ -1,5 +1,45 @@
 # ganeum — backlog
 
+## 2026-09-03 — 3B-a: 화면 보정(SC) + 적응 모델 core · 작업 브랜치 `w3b-a-calibration-adapt-core`
+
+Why: 회사 브리프 `reports/IDEA-20260901-1455/brief-3B-a.md`. 로드맵 주 3–4 하드 MVP
+후반(3B)을 3B-a(보정 화면 + 모델 core + 테스트)와 3B-b(적응 UI)로 쪼갠 첫 절반.
+이전 3A 빌드가 55분 걸려 의도적으로 작게 잡음 — 이 라운드 UI 표면은 SC 하나.
+
+Scope (이번 브랜치 — 딱 세 항목 + 문서):
+
+1. SC 화면 물리 보정 (선택, 건너뛰기 가능):
+   - `CardCalibrator` 컴포넌트(옵션 객체 + `destroy()`). ISO ID-1 카드 85.60:53.98 고정비
+     사각형 + 슬라이더(화살표키) + 숫자 직접입력. 실시간 `X.XX px/mm` + 대각 인치 추정.
+   - `sc-calibrate` 화면 + `#/calibrate` 라우트. [이대로 저장] / [보정 없이 계속].
+   - `ganeum.calibration = { pxPerMm(CSS px per mm), dpr, ts }` 저장 계층.
+   - dpr 상대오차 > 0.05 → 모니터 변경 감지(정확 일치 비교 금지).
+   - `ganeum.prefs.calibrationPrompted` — 첫 측정 직전(S1) 1회 권유, 스킵해도 재권유 없음.
+2. `src/adapt/` 모델 core (UI 없음, 순수 함수 + 골든 테스트):
+   - `presets.ts` — young/elderly/tremor 프리셋 SI(초), 손떨림 `estimated: true`.
+   - `sizing.ts` — 닫힌 식 W*_1d = 4.1075·σ, 표시용 W*_2d = 2.537·σ, 예측 MT,
+     gap(ADJACENCY_GAP_RATIO = 0.35), 바닥값/상한, floored/clamped, 퇴화 가드.
+   - `inv-norm.ts` — Φ⁻¹ Acklam 근사, 런타임 의존성 0, Φ⁻¹(0.98) = 2.05375.
+   - `citations.ts` — 참고문헌 상수(번역 안 함).
+3. S0 보정 상태 줄 실제 배선 (3A 스텁 대체).
+   + `docs/adapt-model.md` (수식·상수·출처·한계).
+
+Out of scope (3B-b): S4 화면, MorphSlider, SampleUI, ABMiniTest, S3 WithinSubjectPanel,
+프리셋 보간·"나" 스냅, S3 "화면 맞춰보기 →" 버튼 활성화. 조건 기하 변경 금지
+(보정은 표시/보고에만 — brief-3A §8 C3).
+
+Done when:
+- `#/calibrate` 카드로 폭 맞추기 → 저장 → S0 "● 화면 보정됨 (X.XX px/mm)".
+  "보정 없이 계속"도 정상 진행. 슬라이더·직접입력 동작.
+- `src/adapt/` 순수 함수 + 골든 테스트 전부 초록. Φ⁻¹ 오차 1e-4 내.
+- `npm run typecheck` / `npm test` / `npm run build` 초록. core 커버리지 게이트 유지.
+- Playwright: 기존 flow 2개 + `#/calibrate` 저장→S0 반영 1개(폰 뷰포트).
+- 사용자 대면 리터럴 0개, i18n `ko`+`en` 키 파리티 초록.
+
+Priority: now
+
+→ `project-eng` 가 이어받는다.
+
 ## 2026-09-03 — 3A: 측정 → 결과 → 카드 (+ 엔진/저장 수정) · 작업 브랜치 `w3a-measure-results`
 
 Why: 회사 브리프 `reports/IDEA-20260901-1455/brief-3A.md` (스펙 정정본). 로드맵 주
