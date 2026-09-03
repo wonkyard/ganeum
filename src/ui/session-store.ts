@@ -2,7 +2,15 @@
 import { createStore } from "./store";
 import type { Hand, MeasureMode } from "../core/types";
 
-export const sessionStore = createStore<{ mode: MeasureMode; hand: Hand }>({
+export interface SessionSelection {
+  mode: MeasureMode;
+  hand: Hand;
+  /** 정밀 측정에서 "양손 비교"를 선택했는지 (5-6-b). quick 에서는 무시된다. */
+  bothHands: boolean;
+}
+
+export const sessionStore = createStore<SessionSelection>({
   mode: "quick",
   hand: "right",
+  bothHands: false,
 });

@@ -93,7 +93,10 @@ const MOUSE_MIN_HIT_PX = 6;
  * - quick(mouse): 3쌍, ID ≈ 5 / 3.5 / 2.5.
  * - quick(touch): W 바닥값 ≥ 24 CSS px. 상단 ID 는 낮아도 수용(손가락으로 2mm 타깃은
  *   못 맞힘 → 재시도 폭주 → 조건 안 끝남). 가장 어려운 조건은 UI 에서 "일부러 어렵습니다".
- * - precise: A ∈ {0.3, 0.5, 0.7}·R  ×  W ∈ {1, 2, 4}·Wmin  → 9 조건 (3B).
+ * - precise: A ∈ {0.3, 0.5, 0.7}·R  ×  W ∈ {1, 2, 4}·Wmin  → 9 조건 (3B / 5-6-b).
+ *   반환은 **ID 오름차순** — 쉬운 조건부터 어려운 조건으로 램프한다. quick 은 반대로
+ *   가장 어려운 조건이 먼저 오고("일부러 어렵습니다" 안내), 정밀은 조건이 9개라
+ *   쉬운 것부터 올린다.
  */
 export function designConditions(
   mode: MeasureMode,
@@ -122,12 +125,15 @@ export function designConditions(
     }));
   }
 
-  return specs.map(({ A, W }) => ({
+  const conditions = specs.map(({ A, W }) => ({
     id: conditionId(A, W),
     A,
     W,
     ID: indexOfDifficulty(A, W),
   }));
+
+  // 정밀 모드는 쉬운 조건(낮은 ID)부터 어려운 조건 순으로 램프한다.
+  return mode === "precise" ? conditions.sort((a, b) => a.ID - b.ID) : conditions;
 }
 
 function crossProduct<A, B>(as: A[], bs: B[]): Array<[A, B]> {

@@ -1,11 +1,11 @@
-/** S1 — 측정 준비 + 3-2-1 카운트다운 (screen-design S1 · brief-3A §3). */
+/** S1 — 측정 준비 + 3-2-1 카운트다운 (screen-design S1 · brief-3A §3 · 5-6-b: 정밀/양손). */
 import { el } from "../dom";
 import { t } from "../../i18n";
 import { createTopBar } from "../components/top-bar";
 import { Countdown } from "../components/countdown";
 import { sessionStore } from "../session-store";
 import { loadCalibration, loadPrefs, savePrefs } from "../../storage/profiles";
-import type { Hand } from "../../core/types";
+import type { Hand, MeasureMode } from "../../core/types";
 import type { MountContext } from "../screen";
 
 export function renderSetup(ctx: MountContext): void {
@@ -33,25 +33,44 @@ export function renderSetup(ctx: MountContext): void {
     wrap.append(prompt);
   }
 
-  // --- 측정 종류 카드 (3A 는 빠른 측정만) ---
-  const quickCard = modeCard("quick", t("setup.quickTitle"), t("setup.quickDetail"), false);
-  const preciseCard = modeCard(
-    "precise",
-    t("setup.preciseTitle"),
-    t("setup.preciseDetail"),
-    true,
-  );
+  // --- 측정 종류 카드 (택1) ---
+  const quickCard = modeCard("quick", t("setup.quickTitle"), t("setup.quickDetail"));
+  const preciseCard = modeCard("precise", t("setup.preciseTitle"), t("setup.preciseDetail"));
   const cards = el("div", { class: "setup-cards", role: "group", "aria-label": t("setup.title") });
   cards.append(quickCard, preciseCard);
   wrap.append(cards);
 
-  quickCard.setAttribute("aria-pressed", "true");
-  quickCard.classList.add("is-selected");
-  // 정밀 측정은 비활성 ("준비 중").
-  preciseCard.setAttribute("aria-disabled", "true");
-  preciseCard.append(el("span", { class: "card-soon" }, t("setup.comingSoon")));
+  // --- 양손 비교 옵션 (정밀 모드에서만 노출) ---
+  const bothHandsInput = el("input", {
+    type: "checkbox",
+    id: "both-hands",
+  }) as HTMLInputElement;
+  const bothHandsRow = el(
+    "div",
+    { class: "both-hands-row small", hidden: true },
+    el("label", { for: "both-hands", class: "both-hands-option" }, bothHandsInput, t("setup.bothHands")),
+    el("p", { class: "muted both-hands-hint" }, t("setup.bothHandsHint")),
+  );
+  wrap.append(bothHandsRow);
 
-  // 카드 ←/→ 키보드 (3A 는 quick 만 유효하므로 포커스 이동만).
+  let selectedMode: MeasureMode = "quick";
+  const selectCard = (mode: MeasureMode): void => {
+    selectedMode = mode;
+    for (const [m, card] of [
+      ["quick", quickCard],
+      ["precise", preciseCard],
+    ] as const) {
+      const on = m === mode;
+      card.classList.toggle("is-selected", on);
+      card.setAttribute("aria-pressed", String(on));
+    }
+    bothHandsRow.hidden = mode !== "precise";
+  };
+  quickCard.addEventListener("click", () => selectCard("quick"));
+  preciseCard.addEventListener("click", () => selectCard("precise"));
+  selectCard("quick");
+
+  // 카드 ←/→ 키보드: 포커스 이동 (선택은 Enter/클릭).
   cards.addEventListener("keydown", (e) => {
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
       e.preventDefault();
@@ -107,7 +126,10 @@ export function renderSetup(ctx: MountContext): void {
   const begin = (): void => {
     if (started) return;
     started = true;
-    sessionStore.set({ mode: "quick" });
+    sessionStore.set({
+      mode: selectedMode,
+      bothHands: selectedMode === "precise" && bothHandsInput.checked,
+    });
     runCountdown();
   };
 
@@ -126,6 +148,8 @@ export function renderSetup(ctx: MountContext): void {
   start.addEventListener("click", begin);
   const onKey = (e: KeyboardEvent): void => {
     if (e.key === " " || e.code === "Space") {
+      // 카드에 포커스가 있으면 스페이스는 카드 선택용 — 측정 시작이 아니다.
+      if (document.activeElement === quickCard || document.activeElement === preciseCard) return;
       e.preventDefault();
       begin();
     }
@@ -136,14 +160,14 @@ export function renderSetup(ctx: MountContext): void {
   quickCard.focus();
 }
 
-function modeCard(mode: string, title: string, detail: string, disabled: boolean): HTMLElement {
+function modeCard(mode: string, title: string, detail: string): HTMLElement {
   return el(
     "button",
     {
       type: "button",
       class: "setup-card",
       "data-mode": mode,
-      disabled: disabled || undefined,
+      "aria-pressed": "false",
     },
     el("span", { class: "card-title" }, title),
     el("span", { class: "card-detail small muted" }, detail),
