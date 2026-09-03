@@ -153,6 +153,93 @@ export const ko = {
   "adapt.feltHint": "직접 눌러보세요 — 숫자 키패드가 바뀝니다.",
   "adapt.saveProfile": "내 손 프로파일 저장 (JSON)",
   "adapt.resultCard": "결과 카드",
+  "adapt.whyAboutLink": "왜 ‘평균’은 실패하나 — 자세히",
+
+  "adapt.sampleTabsLabel": "샘플 목업 종류",
+  "adapt.sampleTab.keypad": "키패드",
+  "adapt.sampleTab.login": "로그인 폼",
+  "adapt.sampleTab.toolbar": "미디어 툴바",
+
+  "adapt.loginLabel": "샘플 로그인 폼",
+  "adapt.loginEmail": "이메일",
+  "adapt.loginPassword": "비밀번호",
+  "adapt.loginSubmit": "로그인",
+  "adapt.loginForgot": "비밀번호 찾기",
+  "adapt.loginForgotAck": "샘플이라 실제로 메일은 안 나가요.",
+  "adapt.loginSubmitAck": "샘플 로그인 — 서버 호출은 없어요.",
+
+  "adapt.toolbarLabel": "샘플 미디어 툴바",
+  "adapt.toolbarPrev": "이전 트랙",
+  "adapt.toolbarPlay": "재생",
+  "adapt.toolbarPause": "일시정지",
+  "adapt.toolbarNext": "다음 트랙",
+  "adapt.toolbarVolume": "볼륨",
+  "adapt.toolbarMute": "음소거",
+  "adapt.toolbarFullscreen": "전체화면",
+  "adapt.toolbarAck": "‘{action}’ 눌림",
+
+  "about.title": "가늠이란?",
+  "about.lead":
+    "가늠은 브라우저에서 당신의 포인팅 능력을 재고, 그 수치에 맞춰 화면의 버튼·간격을 다시 그립니다. 이 페이지는 그 방법과 한계를 설명합니다.",
+  "about.tocLabel": "이 문서의 목차",
+
+  "about.s1Title": "1. Fitts의 법칙",
+  "about.s1p1":
+    "목표를 가리키는 데 걸리는 시간은 목표가 멀수록, 작을수록 늘어납니다. 이 관계를 정량화한 것이 Fitts의 법칙입니다 (Shannon 형식): MT = a + b·log2(A / W + 1). 여기서 A는 이동 거리, W는 목표 너비입니다.",
+  "about.s1p2":
+    "괄호 안의 값 log2(A / W + 1)을 난이도 지수(ID, bits)라고 부릅니다. a는 시작·정지에 드는 고정 비용, b는 난이도가 1 bit 늘 때마다 더 걸리는 시간입니다.",
+  "about.s1p3":
+    "아래 위젯에서 목표를 드래그하거나 두 슬라이더로 거리·크기를 바꿔 보세요. 예측 이동시간이 실시간으로 갱신됩니다. (여기 쓰인 a·b는 설명용 예시값입니다.)",
+  "about.fittsWidgetAlt": "Fitts의 법칙 인터랙티브 그림: 시작점과 드래그 가능한 원형 목표.",
+  "about.fittsTargetHandle": "목표 — 드래그하거나 화살표키로 거리·크기 조절",
+  "about.fittsDistance": "이동 거리 A",
+  "about.fittsSize": "목표 크기 W",
+  "about.fittsReadout": "A = {a} px · W = {w} px · ID = {id} bits · 예측 MT ≈ {mt} ms",
+
+  "about.s2Title": "2. ISO 9241-411 태핑 과제",
+  "about.s2p1":
+    "가늠의 측정은 국제 표준 ISO 9241-411의 태핑 과제를 따릅니다. 목표를 원형으로 배열하고, 매번 원의 지름 반대편 목표를 누르게 해서(criss-cross 순서) 이동 방향이 한쪽으로 치우치지 않게 합니다.",
+  "about.s2p2":
+    "각 탭에서 누른 시각과 착지 지점을 기록합니다. 여러 난이도에 걸친 이동시간을 최소제곱으로 적합해 a·b를 얻고, 착지 산포에서 유효 너비 We를 구합니다.",
+  "about.s2caption": "8목표 원형 배열과 criss-cross 진행 순서 (축소 삽화).",
+  "about.ringAlt": "원형으로 배열된 8개 목표와 지그재그로 이어지는 진행 순서 선.",
+
+  "about.s3Title": "3. 왜 ‘평균’은 실패하나",
+  "about.s3p1":
+    "‘평균 사용자’에 맞춘 하나의 버튼 크기는 꼬리에 있는 사람에게 실패합니다. 접근성 지침도 이를 반영해 최소 크기를 정합니다 — WCAG 2.5.8은 24 CSS px, 2.5.5(강화)는 44 px를 권고하고, 주요 플랫폼의 터치 타깃 권장값도 44 px 안팎입니다.",
+  "about.s3p2":
+    "고령·운동 손상 인구에서는 이동시간의 기울기 b가 눈에 띄게 가팔라집니다. 문헌값으로 마우스 포인팅 기준 20대 b ≈ 224 ms/bit, 65세 이상 b ≈ 333 ms/bit(약 49% 가파름), 진전·파킨슨은 그보다 더 느리고 착지 산포가 큽니다 (Hertzum 2010; Keates & Trewin 2005).",
+  "about.s3p3":
+    "가늠의 적응은 목표 지표를 하나로 고정합니다: 컨트롤을 ‘축별(1차원) 예측 오류율 4% 이하’가 되는 가장 작은 크기로 키웁니다. 닫힌 식 W* = 4.11·σ (σ = 유효 너비 ÷ 4.133)로 계산하며 탐색 루프가 없습니다.",
+  "about.s3p4":
+    "정직하게 말하면 이 1차원 기준 크기는 실제 2차원 원형 버튼에서는 약 12% 오류율에 해당합니다. 최적해가 아니라 방어 가능한 휴리스틱입니다 — 자세한 수식과 상수는 저장소의 adapt-model 문서에 있습니다.",
+
+  "about.s4Title": "4. 화면 보정은 왜 하나",
+  "about.s4p1":
+    "화면에서 1 px이 실제로 몇 mm인지는 모니터마다 다릅니다. 신용카드(ISO/IEC 7810, 85.60 × 53.98 mm)를 화면에 대고 상자 폭을 맞추면 px ↔ mm 환산값을 얻습니다. 선택 사항입니다.",
+  "about.s4p2":
+    "보정하지 않아도 측정과 적응은 그대로 동작합니다 — 다만 결과가 mm 대신 상대 배율(×1.0 → ×1.4)로 표시되고 ‘미보정’ 배지가 붙습니다. 측정 과제의 목표 기하는 항상 화면 CSS px에서만 파생되므로 보정·미보정 세션을 서로 비교할 수 있습니다.",
+
+  "about.s5Title": "5. AI도 서버도 없이 어떻게?",
+  "about.s5p1":
+    "가늠은 Pointer Events API로 마우스·트랙패드·터치·펜을 통합해 받고, performance.now()로 시각을 재고, 최소제곱 회귀로 a·b를 적합합니다. 전부 브라우저 안에서 순수 함수로 돌아갑니다.",
+  "about.s5p2":
+    "측정 데이터는 기기 밖으로 나가지 않습니다. 결과 해설은 지금은 규칙 기반이고, 이후(주 7–8) 기기 내 소형 LLM을 선택적으로 얹을 계획입니다 — 그때도 서버 전송은 없습니다.",
+
+  "about.s6Title": "6. 한계",
+  "about.s6p1":
+    "디스플레이·입력 지연은 모든 탭에 거의 일정한 시간을 더하므로 절편 a를 부풀리고 기울기 b는 거의 건드리지 않습니다. 그래서 가늠은 a의 절대값보다 b와 ‘같은 사람의 이전 측정 대비’ 변화를 앞세웁니다.",
+  "about.s6p2":
+    "자세, 화면과의 거리·시야각, 기기 폼팩터는 보정하지 않습니다. 인구 프리셋은 데스크톱 마우스 문헌이며 터치스크린을 그대로 대변하지 않습니다.",
+  "about.s6p3":
+    "겹쳐 보이는 참고 회귀선은 발표된 연구값의 ‘참고 밴드’일 뿐 규범이 아닙니다. 손떨림 프리셋의 a·b는 발표된 회귀가 아니라 방어 가능한 추정치입니다.",
+  "about.s6notDiagnosis":
+    "가늠은 진단 도구가 아닙니다. 건강 상태를 판정하지 않으며, 의학적 판단은 전문가에게 맡기세요.",
+
+  "about.s7Title": "7. 인용",
+  "about.s7intro": "이 페이지가 근거로 삼은 문헌과 표준입니다.",
+
+  "result.explainMore": "가늠이 무엇을 재는지 (Fitts의 법칙) — 자세히",
 
   "unit.ms": "ms",
   "unit.bitsPerSecond": "bits/초",

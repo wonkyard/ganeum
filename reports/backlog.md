@@ -1,5 +1,56 @@
 # ganeum — backlog
 
+## 2026-09-03 — 5-6-a: 교육 페이지(S6) + 적응 샘플 UI 2개 · 작업 브랜치 `w56a-education-samples`
+
+Why: 회사 브리프 `reports/IDEA-20260901-1455/brief-5-6-a.md`. 하드 MVP(3B-b)로 데모
+3막은 완결됐다. 심사위원이 반드시 보는 **교육 페이지**(S6)와 적응 데모의 설득력을
+높이는 **샘플 UI 2개**(로그인 폼·미디어 툴바)를 얹는다. 전부 추가형(additive) —
+측정/저장/적응 core 로직은 손대지 않는다.
+
+Scope (이번 브랜치 — 딱 두 항목):
+
+1. S6 "가늠이란?" 교육 페이지 `src/ui/screens/s6-about.ts` + `#/about` 라우트:
+   - `screen-design.md` S6 의 7섹션 스크롤 문서. 본문 최대 720px.
+   - `src/ui/components/fitts-widget.ts` — 자체 구현(SVG, 라이브러리 0) 인터랙티브
+     Fitts 위젯. 타깃 드래그(거리·크기) + 키보드 대체 경로(슬라이더 2개). 옵션객체 +
+     `destroy()`. `MT = a + b·log2(A/W+1)` 예측값 실시간 갱신. reduced-motion 이면
+     부수 애니메이션 없음(값 갱신은 유지).
+   - 3섹션 근거 수치는 `docs/adapt-model.md` + `adaptation-presets.md` + `spec.md §4.5`
+     에서. §4.5: 입력 지연은 절편 `a` 를 부풀리고 기울기 `b` 는 거의 안 건드린다 →
+     그래서 `b` 와 피험자 내 비교를 앞세운다.
+   - S0 "가늠이란?" 링크 활성화(지금 스텁) → `#/about`.
+   - S3/S4 의 "자세히"/"왜?" 해설에서 관련 S6 섹션으로 딥링크(`#/about#adapt-model` 등).
+   - `src/adapt/citations.ts` 재사용 + 없는 인용(MacKenzie, ISO 9241-411, WCAG
+     2.5.5/2.5.8) 추가(add-only, 번역 아님).
+   - 접근성: 키보드 완전 조작, 위젯 키보드 대체 경로, 가시 포커스, `aria` 랜드마크.
+
+2. 적응 샘플 UI 2개 추가 `src/ui/components/sample-ui.ts`:
+   - **로그인 폼**: 이메일/비번 입력 + [로그인] 버튼 + "비번 찾기" 링크.
+   - **미디어 툴바**: 아이콘 버튼 6개(이전/재생/다음/볼륨/음소거/전체화면).
+   - 같은 CSS 변수(`--hit-size`/`--gap`/`--pad`) 구동, 같은 250ms 트랜지션,
+     reduced-motion 즉시. `kind: "keypad" | "login" | "toolbar"` 분기, 공통 헬퍼 재사용.
+   - S4 에 탭으로 노출: `[키패드][로그인 폼][미디어 툴바]`. "원래대로↔맞춤" 토글은
+     현재 선택된 샘플에 적용.
+
+Out of scope (5-6-b / 주 7–8): 정밀 측정 모드(조건 9개), 좌우손 비대칭 완성, S3
+히스토리/시점 비교 패널, 접근성 1차 감사, AI 해설(로컬 LLM), PWA 오프라인 완성,
+`ABMiniTest` 정식판. `src/core/*` 및 `src/adapt/{sizing,presets,morph,inv-norm}.ts`
+변경 금지(citations 는 add-only). 런타임 의존성 0 유지.
+
+Done when:
+- `#/about` 스크롤 페이지 7섹션, Fitts 위젯이 드래그/슬라이더로 예측 MT 갱신.
+  S0 "가늠이란?" 링크가 여기로. S3/S4 딥링크가 해당 섹션으로 스크롤.
+- S4 에 샘플 탭 3개, 각각 슬라이더 움직이면 CSS 변수로 재배치, 토글 동작.
+- `npm run typecheck` / `test` / `build` 초록. core 커버리지 게이트 유지.
+- 신규 단위테스트: `fitts-widget` 예측값 계산, `sample-ui` 3종 렌더 + CSS 변수 반영.
+- Playwright: 기존 4개 초록 + 신규 1개(`#/about` 로드 + 위젯 슬라이더 조작 시 예측값
+  텍스트 변화 + S4 샘플 탭 전환). 폰 뷰포트.
+- 사용자 대면 리터럴 0개(S6·샘플 새 문자열 i18n `ko`+`en` 키). 파리티 테스트 초록.
+
+Priority: now
+
+→ `project-eng` 가 이어받는다.
+
 ## 2026-09-03 — 3B-b: 적응 화면(S4) + S3 비교 패널 + 배선 · 작업 브랜치 `w3b-b-adapt-ui`
 
 Why: 회사 브리프 `reports/IDEA-20260901-1455/brief-3B-b.md`. 3B-a 가 깐 모델 core

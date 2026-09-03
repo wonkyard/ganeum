@@ -89,4 +89,27 @@ test("phone — 측정 → S3 → S4: 슬라이더가 --hit-size 를 키우고 '
   // "원래대로" 토글 → 기본 44px 로.
   await page.getByRole("button", { name: "원래대로" }).click();
   await expect.poll(async () => hitSizeOf(), { timeout: 2_000 }).toBe(44);
+
+  // 샘플 탭 3종 (brief-5-6-a §2). 키패드 → 로그인 폼 → 미디어 툴바로 전환하면
+  // 해당 목업이 렌더되고, 현재 선택된 샘플이 "맞춤" 토글을 따른다.
+  await expect(page.locator(".adapt-sample-tab")).toHaveCount(3);
+  await page.getByRole("tab", { name: "로그인 폼" }).click();
+  await expect(page.locator(".sample-ui-login")).toBeVisible();
+  await expect(page.locator(".sample-ui-field")).toHaveCount(2);
+
+  await page.getByRole("tab", { name: "미디어 툴바" }).click();
+  await expect(page.locator(".sample-ui-toolbar .sample-ui-icon-btn")).toHaveCount(6);
+
+  // 툴바가 선택된 상태에서 "나에게 맞춤" → 아이콘 버튼이 기본 44px 보다 커진다.
+  await page.getByRole("button", { name: "나에게 맞춤" }).click();
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const btn = document.querySelector(".sample-ui-icon-btn") as HTMLElement;
+          return parseFloat(getComputedStyle(btn).width);
+        }),
+      { timeout: 2_000 },
+    )
+    .toBeGreaterThan(44);
 });
